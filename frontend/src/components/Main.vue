@@ -1,8 +1,9 @@
 <script setup lang="ts">
 
 import {reactive} from "vue";
-import {Connect, Disconnect,Screenshot} from "../../wailsjs/go/adb/Adb";
-import {ShowMessageDialog} from "../../wailsjs/go/message/Message";
+import {Connect, Disconnect} from "../../wailsjs/go/adb/Adb";
+import {StartGame} from "../../wailsjs/go/main/Game";
+import {ElMessage} from "element-plus";
 
 const form = reactive({
   ip: '100.94.171.85',
@@ -17,14 +18,22 @@ const state = reactive({
 function connect() {
   Connect(form.ip, form.port).then((res) => {
     state.connected = res
-    ShowMessageDialog("提示", res ? "连接成功" : "连接失败")
+    if (res) {
+      ElMessage.success("连接成功")
+    } else {
+      ElMessage.error("连接失败")
+    }
   })
 }
 
 function disconnect() {
   Disconnect(form.ip, form.port).then((res) => {
     state.connected = !res
-    ShowMessageDialog("提示", res ? "断开成功" : "断开失败")
+    if (res) {
+      ElMessage.success("断开成功")
+    } else {
+      ElMessage.error("断开失败")
+    }
   })
 }
 </script>
@@ -41,7 +50,7 @@ function disconnect() {
       <el-form-item>
         <el-button v-if="!state.connected" type="primary" @click="connect">Connect</el-button>
         <el-button v-else type="danger" @click="disconnect">Disconnect</el-button>
-        <el-button type="primary" @click="Screenshot('/Users/xinbaojian/Downloads')">Screenshot</el-button>
+        <el-button type="primary" @click="StartGame">Screenshot</el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -52,6 +61,7 @@ function disconnect() {
   width: 100%;
   height: 100%;
   text-align: center;
+  padding-top: 20px;
 }
 
 .demo-form-inline .el-input {

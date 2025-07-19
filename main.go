@@ -14,11 +14,15 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed all:images
+var images embed.FS
+
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 	msg := &message.Message{}
 	adbClient := &adb.Adb{}
+	game := &Game{}
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -32,10 +36,11 @@ func main() {
 		OnStartup: func(ctx context.Context) {
 			app.startup(ctx)
 			msg.Startup(ctx)
-			adbClient.Startup(ctx)
+			adbClient.Startup(ctx, msg)
+			game.Startup(ctx, adbClient)
 		},
 		Bind: []interface{}{
-			app, adbClient, msg,
+			app, adbClient, msg, game,
 		},
 	})
 
