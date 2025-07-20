@@ -32,6 +32,25 @@ export namespace gocv {
 
 }
 
+export namespace image {
+	
+	export class Point {
+	    X: number;
+	    Y: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Point(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.X = source["X"];
+	        this.Y = source["Y"];
+	    }
+	}
+
+}
+
 export namespace message {
 	
 	export class Message {

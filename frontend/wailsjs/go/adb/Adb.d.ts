@@ -3,6 +3,7 @@
 import {gocv} from '../models';
 import {context} from '../models';
 import {message} from '../models';
+import {image} from '../models';
 
 export function CaptureMat():Promise<gocv.Mat>;
 
@@ -13,3 +14,5 @@ export function Disconnect(arg1:string,arg2:string):Promise<boolean>;
 export function Screenshot(arg1:string):Promise<boolean>;
 
 export function Startup(arg1:context.Context,arg2:message.Message):Promise<void>;
+
+export function Tap(arg1:image.Point):Promise<void>;

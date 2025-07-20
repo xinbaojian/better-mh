@@ -2,11 +2,11 @@ package adb
 
 import (
 	"better-mh/message"
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gocv.io/x/gocv"
+	"image"
 	"os"
 	"os/exec"
 	"strings"
@@ -98,35 +98,51 @@ func (adb *Adb) Screenshot(filePath string) bool {
 	return err == nil
 }
 
+// CaptureMat 获取Mat格式的截图
 func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 	if !adb.Connected {
 		adb.msg.ShowMessageDialog("错误提示", "请先连接设备")
 		return gocv.NewMat(), fmt.Errorf("请先连接设备")
 	}
-	cmd := exec.Command("adb", "exec-out", "screencap", "-p")
-	out, err := cmd.Output()
-	if err != nil {
-		runtime.LogErrorf(adb.ctx, "截图失败 %v", err)
-		return gocv.Mat{}, err
-	}
-	out = fixCRLF(out)
+	//cmd := exec.Command("adb", "exec-out", "screencap", "-p")
+	//out, err := cmd.Output()
+	//if err != nil {
+	//	runtime.LogErrorf(adb.ctx, "截图失败 %v", err)
+	//	return gocv.Mat{}, err
+	//}
+	////将截图数据存储在内存中
+	//img, err := gocv.IMDecode(out, gocv.IMReadColor)
+	//if err != nil || img.Empty() {
+	//	return gocv.Mat{}, fmt.Errorf("读取图像失败: %v", err)
+	//}
 
-	// 保存截图文件以供检查
-	err = os.WriteFile("screenshot.png", out, 0644)
-	if err != nil {
-		return gocv.Mat{}, fmt.Errorf("保存截图失败: %v", err)
+	// 在设备上执行截图命令
+	cmd := exec.Command("adb", "shell", "screencap", "-p", "/sdcard/screen.png")
+	if err := cmd.Run(); err != nil {
+		return gocv.Mat{}, fmt.Errorf("截图失败: %v", err)
 	}
 
-	// 尝试读取图像
-	img, err := gocv.IMDecode(out, gocv.IMReadColor)
-	if err != nil || img.Empty() {
-		return gocv.Mat{}, fmt.Errorf("读取图像失败: %v", err)
+	// 从设备拉取截图文件
+	cmd = exec.Command("adb", "pull", "/sdcard/screen.png", "screen.png")
+	if err := cmd.Run(); err != nil {
+		return gocv.Mat{}, fmt.Errorf("拉取截图失败: %v", err)
+	}
+
+	// 读取截图文件
+	img := gocv.IMRead("screen.png", gocv.IMReadGrayScale)
+	if img.Empty() {
+		return gocv.Mat{}, fmt.Errorf("读取图像失败")
 	}
 
 	return img, nil
 }
 
-// fixCRLF 去掉可能多余的 CR，以防 PNG 损坏
-func fixCRLF(data []byte) []byte {
-	return bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+// Tap 使用adb模拟点击
+func (adb *Adb) Tap(point image.Point) error {
+	// 执行点击命令
+	cmd := exec.Command("adb", "shell", "input", "tap", fmt.Sprintf("%d", point.X), fmt.Sprintf("%d", point.Y))
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
 }

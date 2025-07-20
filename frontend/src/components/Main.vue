@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import {reactive} from "vue";
-import {Connect, Disconnect} from "../../wailsjs/go/adb/Adb";
+import {Connect, Disconnect,CaptureMat} from "../../wailsjs/go/adb/Adb";
 import {StartGame} from "../../wailsjs/go/main/Game";
 import {ElMessage} from "element-plus";
 
@@ -48,9 +48,10 @@ function disconnect() {
         <el-input v-model="form.port" placeholder="请输入端口" clearable/>
       </el-form-item>
       <el-form-item>
-        <el-button v-if="!state.connected" type="primary" @click="connect">Connect</el-button>
-        <el-button v-else type="danger" @click="disconnect">Disconnect</el-button>
-        <el-button type="primary" @click="StartGame">Screenshot</el-button>
+        <el-button v-if="!state.connected" type="primary" @click="connect">Adb链接</el-button>
+        <el-button v-else type="danger" @click="disconnect">断开ADB</el-button>
+        <el-button type="primary" @click="StartGame">测试</el-button>
+        <el-button type="primary" @click="CaptureMat">截图</el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -59,8 +60,11 @@ function disconnect() {
 <style scoped lang="scss">
 .main {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   text-align: center;
+}
+
+.el-form{
   padding-top: 20px;
 }
 

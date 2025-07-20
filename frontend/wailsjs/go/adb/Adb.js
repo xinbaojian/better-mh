@@ -21,3 +21,7 @@ export function Screenshot(arg1) {
 export function Startup(arg1, arg2) {
   return window['go']['adb']['Adb']['Startup'](arg1, arg2);
 }
+
+export function Tap(arg1) {
+  return window['go']['adb']['Adb']['Tap'](arg1);
+}
