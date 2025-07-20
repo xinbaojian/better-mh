@@ -389,7 +389,54 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 
 // StartShimenTask 开始师门任务
 func (g *Game) StartShimenTask() error {
-	return g.StartHuoDongTask("师门任务", "shimen")
+	// 清理弹窗
+	_ = g.CloseDialog()
+	// 激活任务按钮
+	if err := g.ActiveTaskButton(); err != nil {
+		return err
+	}
+	// 下拉任务列表
+	g.adb.SwipeTaskDown(2)
+	// 检查是否已领取师门任务
+	bl, point := g.MatchTemplate("images/shimen-task-icon.png", 0.8)
+	if bl {
+		if err := g.adb.TapPoint(point); err != nil {
+			return err
+		}
+		g.log.SendLog("开始师门任务")
+	} else {
+		g.log.SendLog("未找到师门任务")
+		g.monitorShiMenTask()
+	}
+	bl, point = g.MatchTemplate("images/shimen-goto-task.png", 0.8)
+	if bl {
+		if err := g.adb.TapPoint(point); err != nil {
+			return err
+		}
+		g.log.SendLog("点击去完成师门任务")
+	}
+	g.monitorShiMenTask()
+	return nil
+}
+
+func (g *Game) monitorShiMenTask() {
+	//开始监控师门任务完成进度
+	check := 0
+	for !ShimenTask {
+		if err, point := g.HasImage("shimen-task-flag"); err != nil {
+			check += 1
+			if check >= 3 {
+				g.log.SendLog("师门任务已完成")
+				ShimenTask = true
+			}
+			g.log.SendLog(fmt.Sprintf("第%d次确认，未找到领取的师门任务，等待10秒再检查", check))
+			time.Sleep(10 * time.Second)
+		} else {
+			g.log.SendLog("找到未完成师门任务，重置确认次数")
+			check = 0
+			_ = g.adb.TapPoint(point)
+		}
+	}
 }
 
 func (g *Game) StartBaoTuTask() error {
