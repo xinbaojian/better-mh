@@ -23,6 +23,8 @@ var WaBaoTuTask = false
 var ShimenTask = false
 var ZhuoGuiTask = false
 
+var GlobalFlag = true
+
 // Startup 启动初始化
 func (g *Game) Startup(ctx context.Context, adb *adb.Adb, log *logs.Log) {
 	g.ctx = ctx
@@ -40,7 +42,6 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui bool) {
 			g.log.SendLog("打宝图任务已完成")
 		}
 	}
-	g.log.SendLog(fmt.Sprintf("是否开始挖宝图任务: %t %t", waBaoTu, WaBaoTuTask))
 	if waBaoTu {
 		if !WaBaoTuTask {
 			g.log.SendLog("开始挖宝图任务")
@@ -57,14 +58,13 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui bool) {
 	}
 }
 
+func (g *Game) StopGame() {
+	GlobalFlag = false
+}
+
 func (g *Game) TestButton() {
-	err, point := g.HasImage("baotu-icon")
-	if err != nil {
-		g.log.SendLog("未找到图标")
-	} else {
-		g.log.SendLog("图标位置：" + fmt.Sprintf("%d,%d", point.X, point.Y))
-		_ = g.adb.TapPoint(point)
-	}
+	bl, point := g.MatchTemplate("images/baotu-finished.png", 0.9)
+	g.log.SendLog(fmt.Sprintf("匹配结果: %t %v", bl, point))
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -309,7 +309,7 @@ func (g *Game) IsHuoDongDialog() error {
 
 // CloseDialog 关闭所有对话框
 func (g *Game) CloseDialog() error {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 3; i++ {
 		bl, point := g.MatchTemplate(fmt.Sprintf("images/close%d.png", i), 0.8)
 		if bl {
 			err := g.adb.TapPoint(point)
@@ -337,7 +337,7 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 		g.log.SendLog(fmt.Sprintf("验证活动面板失败: %v", err))
 		return err
 	}
-	// 循环滑动找到师门任务菜单
+	// 循环滑动找到任务菜单
 	for i := 0; i < 4; i++ {
 		if err, _ := g.HasImage(imageName + "-text"); err != nil {
 			g.log.SendLog(fmt.Sprintf("未找到"+taskName+"菜单，第%d次向上滑动重新查看", i+1))
@@ -362,7 +362,7 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 	}(&fullGray)
 
 	// 判断任务是否已完成
-	bl, point := g.MatchTemplateFullGray(fullGray, "images/"+imageName+"-finished.png", 0.8)
+	bl, point := g.MatchTemplateFullGray(fullGray, "images/"+imageName+"-finished.png", 0.9)
 	if bl {
 		g.log.SendLog(taskName + "已完成")
 		switch taskName {
@@ -404,11 +404,11 @@ func (g *Game) StartBaoTuTask() error {
 	// 检查是否已领取宝图任务
 	bl, point := g.MatchTemplate("images/baotu-task-icon.png", 0.8)
 	if bl {
-		point.Y += 20
 		if err := g.adb.TapPoint(point); err != nil {
 			return err
 		}
 		g.log.SendLog("已领取宝图任务,继续任务")
+		g.monitorBaoTuTask()
 		return nil
 	}
 	// 打开活动页领取宝图任务
@@ -417,7 +417,7 @@ func (g *Game) StartBaoTuTask() error {
 	}
 	// 开始接取任务
 	for {
-		if BaoTuTask {
+		if BaoTuTask || GlobalFlag {
 			break
 		}
 		if err, point := g.HasImage("tingtingwufang"); err != nil {
@@ -430,17 +430,33 @@ func (g *Game) StartBaoTuTask() error {
 			break
 		}
 	}
+	g.monitorBaoTuTask()
 	return nil
 }
 
 func (g *Game) monitorBaoTuTask() {
-	for !BaoTuTask {
-		bl, _ := g.MatchTemplate("images/baotu-task-icon.png", 0.8)
+	g.log.SendLog("开始监听宝图任务进度...")
+	index := 0
+	check := 0
+	for !BaoTuTask && GlobalFlag {
+		g.log.SendLog(fmt.Sprintf("第%d次监听宝图任务进度...", index+1))
+		index += 1
+		bl, _ := g.IsBettle()
+		if bl {
+			g.log.SendLog("战斗中...")
+			time.Sleep(1 * time.Minute)
+			continue
+		}
+		bl, _ = g.MatchTemplate("images/baotu-task-icon.png", 0.8)
 		if !bl {
 			time.Sleep(3 * time.Second)
-			BaoTuTask = true
-			g.log.SendLog("宝图任务完成")
+			check += 1
+			if check > 3 {
+				BaoTuTask = true
+				g.log.SendLog("宝图任务完成")
+			}
 		}
+		time.Sleep(5 * time.Second)
 	}
 }
 

@@ -74,6 +74,10 @@ export function Startup(arg1, arg2, arg3) {
   return window['go']['main']['Game']['Startup'](arg1, arg2, arg3);
 }
 
+export function StopGame() {
+  return window['go']['main']['Game']['StopGame']();
+}
+
 export function TestButton() {
   return window['go']['main']['Game']['TestButton']();
 }

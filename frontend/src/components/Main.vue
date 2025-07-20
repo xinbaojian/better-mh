@@ -2,7 +2,7 @@
 
 import {onMounted, reactive, ref, nextTick} from "vue";
 import {Connect, Disconnect,CaptureMat,CheckConnected} from "../../wailsjs/go/adb/Adb";
-import {StartGame,TestButton} from "../../wailsjs/go/main/Game";
+import {StartGame,StopGame,TestButton} from "../../wailsjs/go/main/Game";
 import {ElMessage} from "element-plus";
 import {EventsOn} from "../../wailsjs/runtime";
 
@@ -48,11 +48,13 @@ function disconnect() {
 function startGameClick(){
   console.log("开始游戏",form)
   logs.value = []
+  state.startGame = true
   StartGame(form.baoTu, form.waBaoTu,form.shimen, form.zhuoGui)
 }
 
 function stopGameClick(){
-  console.log("停止游戏")
+  StopGame()
+  state.startGame = false
 }
 
 onMounted(() => {

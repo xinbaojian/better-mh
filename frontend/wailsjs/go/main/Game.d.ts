@@ -42,4 +42,6 @@ export function StartWaBaoTuTask():Promise<void>;
 
 export function Startup(arg1:context.Context,arg2:adb.Adb,arg3:logs.Log):Promise<void>;
 
+export function StopGame():Promise<void>;
+
 export function TestButton():Promise<void>;
