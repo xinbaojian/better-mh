@@ -9,5 +9,10 @@
   "author": {
     "name": "xinbaojian",
     "email": "baojian.xin.py@gmail.com"
+  },
+  "events": {
+    "backendLog": {
+      "description": "Log messages from the backend"
+    }
   }
 }

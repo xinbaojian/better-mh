@@ -2,6 +2,7 @@ package main
 
 import (
 	"better-mh/adb"
+	"better-mh/logs"
 	"better-mh/message"
 	"context"
 	"embed"
@@ -24,6 +25,7 @@ func main() {
 	msg := &message.Message{}
 	adbClient := &adb.Adb{}
 	game := &Game{}
+	log := &logs.Log{}
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -35,10 +37,11 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup: func(ctx context.Context) {
+			log.Startup(ctx)
 			app.startup(ctx)
 			msg.Startup(ctx)
-			adbClient.Startup(ctx, msg)
-			game.Startup(ctx, adbClient)
+			adbClient.Startup(ctx, msg, log)
+			game.Startup(ctx, adbClient, log)
 		},
 		Bind: []interface{}{
 			app, adbClient, msg, game,

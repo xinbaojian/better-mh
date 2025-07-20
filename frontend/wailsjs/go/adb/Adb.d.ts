@@ -3,9 +3,12 @@
 import {gocv} from '../models';
 import {context} from '../models';
 import {message} from '../models';
+import {logs} from '../models';
 import {image} from '../models';
 
 export function CaptureMat():Promise<gocv.Mat>;
+
+export function CheckConnected(arg1:string,arg2:string):Promise<boolean>;
 
 export function Connect(arg1:string,arg2:string):Promise<boolean>;
 
@@ -13,6 +16,20 @@ export function Disconnect(arg1:string,arg2:string):Promise<boolean>;
 
 export function Screenshot(arg1:string):Promise<boolean>;
 
-export function Startup(arg1:context.Context,arg2:message.Message):Promise<void>;
+export function Startup(arg1:context.Context,arg2:message.Message,arg3:logs.Log):Promise<void>;
 
-export function Tap(arg1:image.Point):Promise<void>;
+export function Swipe(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function SwipeHuoDongDown():Promise<void>;
+
+export function SwipeHuoDongUp():Promise<void>;
+
+export function SwipePackageDown(arg1:number):Promise<void>;
+
+export function SwipePackageUp(arg1:number):Promise<void>;
+
+export function SwipeTaskDown(arg1:number):Promise<void>;
+
+export function SwipeTaskUp():Promise<void>;
+
+export function TapPoint(arg1:image.Point):Promise<void>;

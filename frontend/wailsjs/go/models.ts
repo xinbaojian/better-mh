@@ -51,6 +51,23 @@ export namespace image {
 
 }
 
+export namespace logs {
+	
+	export class Log {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new Log(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
+
+}
+
 export namespace message {
 	
 	export class Message {

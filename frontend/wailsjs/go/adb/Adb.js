@@ -6,6 +6,10 @@ export function CaptureMat() {
   return window['go']['adb']['Adb']['CaptureMat']();
 }
 
+export function CheckConnected(arg1, arg2) {
+  return window['go']['adb']['Adb']['CheckConnected'](arg1, arg2);
+}
+
 export function Connect(arg1, arg2) {
   return window['go']['adb']['Adb']['Connect'](arg1, arg2);
 }
@@ -18,10 +22,38 @@ export function Screenshot(arg1) {
   return window['go']['adb']['Adb']['Screenshot'](arg1);
 }
 
-export function Startup(arg1, arg2) {
-  return window['go']['adb']['Adb']['Startup'](arg1, arg2);
+export function Startup(arg1, arg2, arg3) {
+  return window['go']['adb']['Adb']['Startup'](arg1, arg2, arg3);
 }
 
-export function Tap(arg1) {
-  return window['go']['adb']['Adb']['Tap'](arg1);
+export function Swipe(arg1, arg2, arg3, arg4) {
+  return window['go']['adb']['Adb']['Swipe'](arg1, arg2, arg3, arg4);
+}
+
+export function SwipeHuoDongDown() {
+  return window['go']['adb']['Adb']['SwipeHuoDongDown']();
+}
+
+export function SwipeHuoDongUp() {
+  return window['go']['adb']['Adb']['SwipeHuoDongUp']();
+}
+
+export function SwipePackageDown(arg1) {
+  return window['go']['adb']['Adb']['SwipePackageDown'](arg1);
+}
+
+export function SwipePackageUp(arg1) {
+  return window['go']['adb']['Adb']['SwipePackageUp'](arg1);
+}
+
+export function SwipeTaskDown(arg1) {
+  return window['go']['adb']['Adb']['SwipeTaskDown'](arg1);
+}
+
+export function SwipeTaskUp() {
+  return window['go']['adb']['Adb']['SwipeTaskUp']();
+}
+
+export function TapPoint(arg1) {
+  return window['go']['adb']['Adb']['TapPoint'](arg1);
 }
