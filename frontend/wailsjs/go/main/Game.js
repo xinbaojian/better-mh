@@ -6,6 +6,10 @@ export function ActiveTaskButton() {
   return window['go']['main']['Game']['ActiveTaskButton']();
 }
 
+export function ActiveTeamButton() {
+  return window['go']['main']['Game']['ActiveTeamButton']();
+}
+
 export function ClickShiYong() {
   return window['go']['main']['Game']['ClickShiYong']();
 }
@@ -14,12 +18,28 @@ export function CloseDialog() {
   return window['go']['main']['Game']['CloseDialog']();
 }
 
+export function FindZhongKui() {
+  return window['go']['main']['Game']['FindZhongKui']();
+}
+
+export function GotoChangAn() {
+  return window['go']['main']['Game']['GotoChangAn']();
+}
+
 export function HasDialog() {
   return window['go']['main']['Game']['HasDialog']();
 }
 
+export function HasHelper() {
+  return window['go']['main']['Game']['HasHelper']();
+}
+
 export function HasImage(arg1) {
   return window['go']['main']['Game']['HasImage'](arg1);
+}
+
+export function HasPackage() {
+  return window['go']['main']['Game']['HasPackage']();
 }
 
 export function IsBettle() {
@@ -28,6 +48,10 @@ export function IsBettle() {
 
 export function IsHuoDongDialog() {
   return window['go']['main']['Game']['IsHuoDongDialog']();
+}
+
+export function IsTeamDialog() {
+  return window['go']['main']['Game']['IsTeamDialog']();
 }
 
 export function MatchTemplate(arg1, arg2) {
@@ -76,6 +100,10 @@ export function Startup(arg1, arg2, arg3) {
 
 export function StopGame() {
   return window['go']['main']['Game']['StopGame']();
+}
+
+export function TeamGuiUp() {
+  return window['go']['main']['Game']['TeamGuiUp']();
 }
 
 export function TestButton() {

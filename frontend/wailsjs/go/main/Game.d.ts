@@ -8,17 +8,29 @@ import {logs} from '../models';
 
 export function ActiveTaskButton():Promise<void>;
 
+export function ActiveTeamButton():Promise<void>;
+
 export function ClickShiYong():Promise<void>;
 
 export function CloseDialog():Promise<void>;
 
+export function FindZhongKui():Promise<void>;
+
+export function GotoChangAn():Promise<void>;
+
 export function HasDialog():Promise<boolean|image.Point>;
 
-export function HasImage(arg1:string):Promise<Error|image.Point>;
+export function HasHelper():Promise<boolean>;
+
+export function HasImage(arg1:string):Promise<boolean|image.Point>;
+
+export function HasPackage():Promise<boolean>;
 
 export function IsBettle():Promise<boolean>;
 
 export function IsHuoDongDialog():Promise<void>;
+
+export function IsTeamDialog():Promise<void>;
 
 export function MatchTemplate(arg1:string,arg2:number):Promise<boolean|image.Point>;
 
@@ -43,5 +55,7 @@ export function StartWaBaoTuTask():Promise<void>;
 export function Startup(arg1:context.Context,arg2:adb.Adb,arg3:logs.Log):Promise<void>;
 
 export function StopGame():Promise<void>;
+
+export function TeamGuiUp():Promise<void>;
 
 export function TestButton():Promise<void>;
