@@ -30,6 +30,31 @@ var MapPoint = image.Point{
 	Y: 40,
 }
 
+var RightArrow = image.Point{
+	X: 33,
+	Y: 54,
+}
+
+var LeftArrow = image.Point{
+	X: 430,
+	Y: 53,
+}
+
+var LeftTeamIcon = image.Point{
+	X: 130,
+	Y: 228,
+}
+
+var CloseTeamPoint = image.Point{
+	X: 1105,
+	Y: 44,
+}
+
+var AutoMatchPoint = image.Point{
+	X: 1030,
+	Y: 113,
+}
+
 // Startup 启动初始化
 func (g *Game) Startup(ctx context.Context, adb *adb.Adb, log *logs.Log) {
 	g.ctx = ctx
@@ -62,8 +87,15 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui bool) {
 		}
 	}
 	if zhuoGui {
-		if err := g.TeamGuiUp(); err != nil {
-			g.log.SendLog("组队捉鬼任务失败...")
+		if g.NeedTeamGuiUp() {
+			if err := g.TeamGuiUp(); err != nil {
+				g.log.SendLog("组队捉鬼任务失败...")
+			}
+		}
+		for {
+			if g.monitorZhuogui() {
+				break
+			}
 		}
 	}
 }
@@ -72,8 +104,19 @@ func (g *Game) StopGame() {
 	GlobalFlag = false
 }
 
+func (g *Game) CheckStop() bool {
+	if !GlobalFlag {
+		g.log.SendLog("手动停止任务")
+		return true
+	}
+	return false
+}
+
 func (g *Game) TestButton() {
-	_ = g.FindZhongKui()
+	//g.monitorZhuogui()
+	//_ = g.adb.TapPoint(LeftArrow)
+	g.log.SendLog("测试按钮")
+	g.ActiveTaskButton()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -171,27 +214,23 @@ func (g *Game) MatchTemplateFullGray(fullGray gocv.Mat, filePath string, thresho
 	return true, image.Point{X: absX, Y: absY}
 }
 
-func (g *Game) activeButton(imgName string) error {
-	bl, point := g.MatchTemplate("images/"+imgName+"1.png", 0.8)
-	if !bl {
-		bl, point = g.MatchTemplate("images/"+imgName+"0.png", 0.8)
-	}
-	if bl {
-		err := g.adb.TapPoint(point)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // ActiveTaskButton 激活右侧任务按钮
-func (g *Game) ActiveTaskButton() error {
-	return g.activeButton("task")
+func (g *Game) ActiveTaskButton() {
+	if bl, _ := g.HasImage("yao-qing-ru-dui"); bl {
+		g.log.SendLog("激活任务栏")
+		_ = g.adb.TapPoint(image.Point{X: 1100, Y: 140})
+	} else {
+		g.log.SendLog("任务栏已激活")
+	}
 }
 
-func (g *Game) ActiveTeamButton() error {
-	return g.activeButton("team")
+func (g *Game) ActiveTeamButton() {
+	if bl, _ := g.HasImage("yao-qing-ru-dui"); !bl {
+		g.log.SendLog("激活组队栏")
+		_ = g.adb.TapPoint(image.Point{X: 1120, Y: 140})
+	} else {
+		g.log.SendLog("组队栏已激活")
+	}
 }
 
 // HasImage 验证图片是否存在
@@ -248,11 +287,8 @@ func (g *Game) IsBettle() (bool, error) {
 
 // OpenTeamDialog 激活队伍按钮
 func (g *Game) OpenTeamDialog() error {
-	err := g.activeButton("team")
-	if err != nil {
-		return err
-	}
-	// 验证是否打开队伍面板
+	g.ActiveTeamButton()
+	err := g.adb.TapPoint(image.Point{X: 1120, Y: 140})
 	return err
 }
 
@@ -369,6 +405,9 @@ func (g *Game) CloseDialog() error {
 				break
 			}
 		}
+		if g.HasPackage() {
+			break
+		}
 		_ = fullGray.Close() // 手动释放资源
 	}
 	end := time.Now()
@@ -444,9 +483,7 @@ func (g *Game) StartShimenTask() error {
 	// 清理弹窗
 	_ = g.CloseDialog()
 	// 激活任务按钮
-	if err := g.ActiveTaskButton(); err != nil {
-		return err
-	}
+	g.ActiveTaskButton()
 	// 下拉任务列表
 	g.adb.SwipeTaskDown(2)
 	// 检查是否已领取师门任务
@@ -499,9 +536,7 @@ func (g *Game) StartBaoTuTask() error {
 	// 清理弹窗
 	_ = g.CloseDialog()
 	// 激活任务按钮
-	if err := g.ActiveTaskButton(); err != nil {
-		return err
-	}
+	g.ActiveTaskButton()
 	// 下拉任务列表
 	g.adb.SwipeTaskDown(2)
 	// 检查是否已领取宝图任务
@@ -621,6 +656,20 @@ func (g *Game) HasHelper() bool {
 	return bl
 }
 
+func (g *Game) NeedTeamGuiUp() bool {
+	if bl, _ := g.HasImage("dong-min-ji"); bl {
+		g.log.SendLog("捉鬼战斗中，无需组队")
+		return false
+	}
+	time.Sleep(1 * time.Second)
+	g.ActiveTaskButton()
+	if bl, _ := g.HasImage("zhuo-na"); bl {
+		g.log.SendLog("已领取捉鬼任务，无需组队")
+		return false
+	}
+	return true
+}
+
 func (g *Game) TeamGuiUp() error {
 	_ = g.CloseDialog()
 	// 打开队伍界面
@@ -631,69 +680,86 @@ func (g *Game) TeamGuiUp() error {
 		g.log.SendLog(err.Error())
 		return err
 	}
+	needTeamUp := true
 	// 检查是否已组队
 	if bl, _ := g.HasImage("quit-team"); bl {
-		g.log.SendLog("已组队，退出队伍")
-		if err := g.adb.TapPoint(image.Point{X: 230, Y: 655}); err != nil {
-			g.log.SendLog("退出队伍失败")
+		// 判断队伍是否是捉鬼队伍
+		if bl, _ := g.HasImage("zhuogui-target"); !bl {
+			g.log.SendLog("已组队，不是捉鬼队伍，退出队伍")
+			if err := g.adb.TapPoint(image.Point{X: 230, Y: 655}); err != nil {
+				g.log.SendLog("退出队伍失败")
+			}
+		} else {
+			g.log.SendLog("已组队，是捉鬼队伍")
+			g.checkLiXian()
+			needTeamUp = false
 		}
 	}
-	// 点击便捷组队
-	bl, option := g.MatchTemplate("images/quick-team-up.png", 0.8)
-	if bl {
-		_ = g.adb.TapPoint(option)
-		g.log.SendLog("点击便捷组队")
-	} else {
-		return errors.New("没有找到便捷组队按钮")
+	if needTeamUp {
+		// 点击便捷组队
+		bl, option := g.MatchTemplate("images/quick-team-up.png", 0.8)
+		if bl {
+			_ = g.adb.TapPoint(option)
+			g.log.SendLog("点击便捷组队")
+		} else {
+			return errors.New("没有找到便捷组队按钮")
+		}
+		// 点击日常任务
+		bl, option = g.MatchTemplate("images/daily-task-close-btn.png", 0.8)
+		if bl {
+			_ = g.adb.TapPoint(option)
+			g.log.SendLog("打开日常任务")
+		}
+		// 点击捉鬼任务
+		bl, option = g.MatchTemplate("images/zhuogui-task-btn.png", 0.8)
+		if bl {
+			_ = g.adb.TapPoint(option)
+			g.log.SendLog("点击捉鬼任务")
+		}
+		// 点击创建队伍
+		bl, option = g.MatchTemplate("images/create-team-btn.png", 0.8)
+		if bl {
+			_ = g.adb.TapPoint(option)
+			g.log.SendLog("点击创建队伍")
+		} else {
+			return errors.New("没有找到创建队伍按钮")
+		}
+		// 调整队伍目标
+		bl, point := g.HasImage("edit-team")
+		if bl {
+			_ = g.adb.TapPoint(point)
+			g.log.SendLog("点击队伍目标")
+			time.Sleep(1 * time.Second)
+		} else {
+			return errors.New("没有找到队伍目标按钮")
+		}
+		bl, point = g.HasImage("team-target-90115")
+		if bl {
+			_ = g.adb.TapPoint(point)
+			g.log.SendLog("点击队伍等级目标")
+			time.Sleep(1 * time.Second)
+		} else {
+			return errors.New("没有找到队伍等级目标按钮")
+		}
+		if err := g.adb.TapPoint(image.Point{X: 640, Y: 655}); err != nil {
+			return errors.New("点击调整目标确定失败")
+		}
 	}
-	// 点击日常任务
-	bl, option = g.MatchTemplate("images/daily-task-close-btn.png", 0.8)
-	if bl {
-		_ = g.adb.TapPoint(option)
-		g.log.SendLog("打开日常任务")
-	}
-	// 点击捉鬼任务
-	bl, option = g.MatchTemplate("images/zhuogui-task-btn.png", 0.8)
-	if bl {
-		_ = g.adb.TapPoint(option)
-		g.log.SendLog("点击捉鬼任务")
-	}
-	// 点击创建队伍
-	bl, option = g.MatchTemplate("images/create-team-btn.png", 0.8)
-	if bl {
-		_ = g.adb.TapPoint(option)
-		g.log.SendLog("点击创建队伍")
-	} else {
-		return errors.New("没有找到创建队伍按钮")
-	}
-	// 调整队伍目标
-	bl, point := g.HasImage("edit-team")
-	if bl {
-		_ = g.adb.TapPoint(point)
-		g.log.SendLog("点击队伍目标")
-		time.Sleep(1 * time.Second)
-	} else {
-		return errors.New("没有找到队伍目标按钮")
-	}
-	bl, point = g.HasImage("team-target-90115")
-	if bl {
-		_ = g.adb.TapPoint(point)
-		g.log.SendLog("点击队伍等级目标")
-		time.Sleep(1 * time.Second)
-	} else {
-		return errors.New("没有找到队伍等级目标按钮")
-	}
-	if err := g.adb.TapPoint(image.Point{X: 640, Y: 655}); err != nil {
-		return errors.New("点击调整目标确定失败")
-	}
+
 	// 判断是否在自动匹配中
-	bl, _ = g.HasImage("cancel-match")
+	bl, _ := g.HasImage("cancel-match")
 	if bl {
 		g.log.SendLog("正在自动匹配中...")
+	} else {
+		g.log.SendLog("点击自动匹配")
+		_ = g.adb.TapPoint(AutoMatchPoint)
 	}
 	//循环检查是否组满队员
 	for {
-		if bl, _ := g.HasImage("helper"); bl {
+		if g.CheckStop() {
+			break
+		}
+		if !g.HasHelper() {
 			g.log.SendLog("没有找到助战，组满队员")
 			break
 		}
@@ -705,6 +771,9 @@ func (g *Game) TeamGuiUp() error {
 }
 
 func (g *Game) FindZhongKui() error {
+	if g.CheckStop() {
+		return errors.New("任务已取消")
+	}
 	_ = g.CloseDialog()
 	if err := g.GotoChangAn(); err != nil {
 		return err
@@ -721,26 +790,13 @@ func (g *Game) FindZhongKui() error {
 		g.log.SendLog("点击钟馗失败")
 		return err
 	}
-	// 循环检查是否与钟馗对话中
-	for {
-		if bl, point := g.HasImage("zhuogui-task"); bl {
-			g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
-			if err := g.adb.TapPoint(point); err != nil {
-				g.log.SendLog("点击捉鬼任务按钮失败")
-			}
-			break
-		}
-	}
-	// 判断是否成功领取捉鬼任务
-	if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
-		g.log.SendLog("领取捉鬼任务失败")
-	} else {
-		g.log.SendLog("成功领取捉鬼任务")
-	}
 	return nil
 }
 
 func (g *Game) GotoChangAn() error {
+	if g.CheckStop() {
+		return errors.New("任务已取消")
+	}
 	if err := g.adb.TapPoint(MapPoint); err != nil {
 		g.log.SendLog("点击地图失败")
 		return err
@@ -750,4 +806,143 @@ func (g *Game) GotoChangAn() error {
 		return err
 	}
 	return nil
+}
+
+func (g *Game) monitorZhuogui() bool {
+	g.log.SendLog("开始监控捉鬼进程...")
+	if g.CheckStop() {
+		g.log.SendLog("手动终止任务...")
+		return true
+	}
+	// 循环检查是否与钟馗对话中
+	if g.NeedTeamGuiUp() {
+		for {
+			if !GlobalFlag {
+				g.log.SendLog("手动停止捉鬼任务")
+				return true
+			}
+			if bl, point := g.HasImage("zhuogui-task"); bl {
+				g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
+				if err := g.adb.TapPoint(point); err != nil {
+					g.log.SendLog("点击捉鬼任务按钮失败")
+				}
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+		// 判断是否成功领取捉鬼任务
+		if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
+			g.log.SendLog("领取捉鬼任务失败")
+			_ = g.adb.TapPoint(image.Point{X: 640, Y: 655})
+			if err := g.OpenTeamDialog(); err != nil {
+				g.log.SendLog("打开队伍界面失败")
+			}
+			g.checkLiXian()
+			_ = g.FindZhongKui()
+		} else {
+			g.log.SendLog("成功领取捉鬼任务")
+			// 捉拿鬼任务
+			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
+			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
+		}
+	}
+
+	for {
+		if !GlobalFlag {
+			g.log.SendLog("手动停止捉鬼任务")
+			return true
+		}
+		if bl, _ := g.IsBettle(); bl {
+			g.log.SendLog("捉鬼战斗中...")
+			if g.HasLiXian() {
+				g.log.SendLog("有离线角色,打开队伍界面")
+				_ = g.adb.TapPoint(RightArrow)
+				_ = g.adb.TapPoint(LeftTeamIcon)
+				g.checkLiXian()
+			}
+			time.Sleep(10 * time.Second)
+			//break
+		} else {
+			//g.ActiveTaskButton()
+			if bl, _ := g.HasImage("continue-zhuogui"); bl {
+				g.log.SendLog("已捉完一轮鬼，是否继续？")
+				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
+				break
+			}
+			if bl, point := g.HasImage("zhuo-na"); bl {
+				_ = g.adb.TapPoint(point)
+				g.log.SendLog("已有捉鬼任务，点击追踪")
+			}
+		}
+	}
+	return true
+}
+
+func (g *Game) HasLiXian() bool {
+	// 截取屏幕
+	fullGray, err := g.adb.CaptureMat()
+	if err != nil {
+		runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
+		return false
+	}
+	defer func(full *gocv.Mat) {
+		_ = full.Close()
+	}(&fullGray)
+
+	bl, _ := g.MatchTemplateFullGray(fullGray, "images/yang-jian.png", 0.9)
+	if bl {
+		return true
+	}
+	bl, _ = g.MatchTemplateFullGray(fullGray, "images/xing-lin-xian.png", 0.9)
+	if bl {
+		return true
+	}
+	return false
+}
+
+func (g *Game) CloseTeamDialog() error {
+	return g.adb.TapPoint(CloseTeamPoint)
+}
+
+func (g *Game) checkLiXian() {
+	for i := 0; i < 4; i++ {
+		if bl, point := g.HasImage("li-xian"); bl {
+			point.Y = point.Y - 50
+			_ = g.adb.TapPoint(point)
+			g.log.SendLog("请离离线角色")
+			if bl, point := g.HasImage("kick-out-team"); bl {
+				_ = g.adb.TapPoint(point)
+				g.log.SendLog("请离离线角色成功")
+			} else {
+				g.log.SendLog("请离离线角色失败")
+			}
+		} else {
+			g.log.SendLog("没有找到离线角色，重新匹配队友")
+			if bl, _ := g.HasImage("cancel-match"); !bl {
+				if err := g.adb.TapPoint(image.Point{X: 1030, Y: 110}); err != nil {
+					g.log.SendLog("重新匹配队友失败")
+				}
+			}
+			break
+		}
+	}
+	// 循环检查队友是否补全
+	for {
+		if g.HasHelper() {
+			g.log.SendLog("队友未补全")
+			time.Sleep(5 * time.Second)
+		} else {
+			g.log.SendLog("队友已补全")
+			break
+		}
+	}
+	_ = g.CloseTeamDialog()
+	g.CloseLeftArrow()
+
+}
+
+func (g *Game) CloseLeftArrow() {
+	if bl, _ := g.HasImage("left-arrow"); bl {
+		_ = g.adb.TapPoint(LeftArrow)
+	}
 }

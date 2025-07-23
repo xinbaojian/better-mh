@@ -10,9 +10,15 @@ export function ActiveTaskButton():Promise<void>;
 
 export function ActiveTeamButton():Promise<void>;
 
+export function CheckStop():Promise<boolean>;
+
 export function ClickShiYong():Promise<void>;
 
 export function CloseDialog():Promise<void>;
+
+export function CloseLeftArrow():Promise<void>;
+
+export function CloseTeamDialog():Promise<void>;
 
 export function FindZhongKui():Promise<void>;
 
@@ -23,6 +29,8 @@ export function HasDialog():Promise<boolean|image.Point>;
 export function HasHelper():Promise<boolean>;
 
 export function HasImage(arg1:string):Promise<boolean|image.Point>;
+
+export function HasLiXian():Promise<boolean>;
 
 export function HasPackage():Promise<boolean>;
 
@@ -35,6 +43,8 @@ export function IsTeamDialog():Promise<void>;
 export function MatchTemplate(arg1:string,arg2:number):Promise<boolean|image.Point>;
 
 export function MatchTemplateFullGray(arg1:gocv.Mat,arg2:string,arg3:number):Promise<boolean|image.Point>;
+
+export function NeedTeamGuiUp():Promise<boolean>;
 
 export function OpenHuoDongDialog(arg1:string):Promise<void>;
 

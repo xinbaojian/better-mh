@@ -10,12 +10,24 @@ export function ActiveTeamButton() {
   return window['go']['main']['Game']['ActiveTeamButton']();
 }
 
+export function CheckStop() {
+  return window['go']['main']['Game']['CheckStop']();
+}
+
 export function ClickShiYong() {
   return window['go']['main']['Game']['ClickShiYong']();
 }
 
 export function CloseDialog() {
   return window['go']['main']['Game']['CloseDialog']();
+}
+
+export function CloseLeftArrow() {
+  return window['go']['main']['Game']['CloseLeftArrow']();
+}
+
+export function CloseTeamDialog() {
+  return window['go']['main']['Game']['CloseTeamDialog']();
 }
 
 export function FindZhongKui() {
@@ -36,6 +48,10 @@ export function HasHelper() {
 
 export function HasImage(arg1) {
   return window['go']['main']['Game']['HasImage'](arg1);
+}
+
+export function HasLiXian() {
+  return window['go']['main']['Game']['HasLiXian']();
 }
 
 export function HasPackage() {
@@ -60,6 +76,10 @@ export function MatchTemplate(arg1, arg2) {
 
 export function MatchTemplateFullGray(arg1, arg2, arg3) {
   return window['go']['main']['Game']['MatchTemplateFullGray'](arg1, arg2, arg3);
+}
+
+export function NeedTeamGuiUp() {
+  return window['go']['main']['Game']['NeedTeamGuiUp']();
 }
 
 export function OpenHuoDongDialog(arg1) {
