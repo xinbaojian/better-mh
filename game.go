@@ -415,6 +415,8 @@ func (g *Game) StartShimenTask() error {
 		}
 		g.log.SendLog("点击去完成师门任务")
 	}
+	g.log.SendLog("等待60s...")
+	time.Sleep(120 * time.Second)
 	g.monitorShiMenTask()
 	return nil
 }
@@ -435,6 +437,8 @@ func (g *Game) monitorShiMenTask() {
 			g.log.SendLog("找到未完成师门任务，重置确认次数")
 			check = 0
 			_ = g.adb.TapPoint(point)
+			g.log.SendLog("休息10s...")
+			time.Sleep(10 * time.Second)
 		}
 	}
 }
@@ -462,9 +466,11 @@ func (g *Game) StartBaoTuTask() error {
 	if err := g.StartHuoDongTask("宝图任务", "baotu"); err != nil {
 		return err
 	}
+	g.log.SendLog("开始监听领取任务菜单")
 	// 开始接取任务
 	for {
-		if BaoTuTask || GlobalFlag {
+		if BaoTuTask || !GlobalFlag {
+			g.log.SendLog("打宝图任务手动结束")
 			break
 		}
 		if err, point := g.HasImage("tingtingwufang"); err != nil {
@@ -474,6 +480,7 @@ func (g *Game) StartBaoTuTask() error {
 			if err := g.adb.TapPoint(point); err != nil {
 				g.log.SendLog(fmt.Sprintf("领取宝图任务失败: %v", err))
 			}
+			g.log.SendLog("领取打宝图任务")
 			break
 		}
 	}
@@ -528,6 +535,10 @@ func (g *Game) StartWaBaoTuTask() error {
 	//循环监控使用宝图按钮
 	index := 0
 	for {
+		if WaBaoTuTask {
+			g.log.SendLog("挖宝任务已完成")
+			break
+		}
 		if index > 5 {
 			g.log.SendLog(fmt.Sprintf("已尝试%d次,没有使用宝图按钮,重新打开背包检查是否有宝图", index))
 			break
