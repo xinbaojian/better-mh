@@ -910,21 +910,16 @@ func (g *Game) monitorZhuogui() bool {
 				g.log.SendLog("已捉完一轮鬼，是否继续？")
 				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
 				time.Sleep(8 * time.Second)
-				if g.monitorTeamNumber() {
-					return false
-				}
 				g.monitorZhongKuiDuiHua()
 				break
+			}
+			if g.monitorTeamNumber() {
+				g.log.SendLog("队伍人数不足，重新开始")
+				return false
 			}
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				_ = g.adb.TapPoint(point)
 				g.log.SendLog("已有捉鬼任务，点击追踪")
-			} else {
-				if err := g.OpenTeamDialog(); err != nil {
-					g.log.SendLog("打开队伍界面失败")
-				}
-				g.checkLiXian()
-				_ = g.FindZhongKui()
 			}
 		}
 	}
