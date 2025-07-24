@@ -106,6 +106,7 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 		}
 	}
 	if zhuoGui {
+		_ = g.GotoChangAn()
 		if g.NeedTeamGuiUp() {
 			if err := g.TeamGuiUp(); err != nil {
 				g.log.SendLog("组队捉鬼任务失败...")
@@ -707,8 +708,10 @@ func (g *Game) NeedTeamGuiUp() bool {
 }
 
 func (g *Game) TeamGuiUp() error {
+	g.log.SendLog("开始组队")
 	_ = g.CloseDialog()
 	// 打开队伍界面
+	g.log.SendLog("打开队伍界面")
 	_ = g.adb.TapPoint(image.Point{X: 1220, Y: 140})
 	_ = g.adb.TapPoint(image.Point{X: 1220, Y: 140})
 	time.Sleep(1 * time.Second)
@@ -830,8 +833,13 @@ func (g *Game) FindZhongKui() error {
 }
 
 func (g *Game) GotoChangAn() error {
+	g.log.SendLog("前往长安城")
 	if g.CheckStop() {
 		return errors.New("任务已取消")
+	}
+	if bl, _ := g.HasImage("chang-an-cheng"); bl {
+		g.log.SendLog("已在长安城")
+		return nil
 	}
 	if err := g.adb.TapPoint(MapPoint); err != nil {
 		g.log.SendLog("点击地图失败")
@@ -1024,6 +1032,9 @@ func (g *Game) checkLiXian() {
 		}
 	}
 	_ = g.CloseTeamDialog()
+	if bl, point := g.HasImage("left-arrow"); bl {
+		_ = g.adb.TapPoint(point)
+	}
 }
 
 func (g *Game) CloseLeftArrow() {

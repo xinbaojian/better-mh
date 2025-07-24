@@ -4,3 +4,4 @@ frontend/dist
 .idea
 better-mh.exe
 screen.png
+.DS_Store
