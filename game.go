@@ -106,7 +106,6 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 		}
 	}
 	if zhuoGui {
-		_ = g.GotoChangAn()
 		if g.NeedTeamGuiUp() {
 			if err := g.TeamGuiUp(); err != nil {
 				g.log.SendLog("组队捉鬼任务失败...")
@@ -896,8 +895,10 @@ func (g *Game) monitorZhuogui() bool {
 			// 捉拿鬼任务
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
+			time.Sleep(5 * time.Second)
 		}
 	}
+	index := 0
 	for {
 		if !GlobalFlag {
 			g.log.SendLog("手动停止捉鬼任务")
@@ -910,10 +911,12 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(RightArrow)
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
+				time.Sleep(15 * time.Second)
 				continue
 			}
 			time.Sleep(10 * time.Second)
 		} else {
+			g.log.SendLog("捉鬼战斗结束...")
 			if bl, _ := g.HasImage("continue-zhuogui"); bl {
 				g.log.SendLog("已捉完一轮鬼，是否继续？")
 				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
@@ -923,11 +926,22 @@ func (g *Game) monitorZhuogui() bool {
 			}
 			if g.monitorTeamNumber() {
 				g.log.SendLog("队伍人数不足，重新开始")
+				time.Sleep(30 * time.Second)
+				if bl, point := g.HasImage("team-tiao-cheng-cancel"); bl {
+					g.log.SendLog("点击取消")
+					_ = g.adb.TapPoint(point)
+				}
 				return false
 			}
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				_ = g.adb.TapPoint(point)
 				g.log.SendLog("已有捉鬼任务，点击追踪")
+			} else {
+				index += 1
+			}
+			if index > 2 {
+				g.log.SendLog("没有找到捉鬼任务，重新开始")
+				break
 			}
 		}
 	}
@@ -958,6 +972,11 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
 			if err := g.adb.TapPoint(point); err != nil {
 				g.log.SendLog("点击捉鬼任务按钮失败")
+			}
+			if bl, point := g.HasImage("zhuo-na"); bl {
+				g.log.SendLog("点击捉鬼追踪")
+				_ = g.adb.TapPoint(point)
+				_ = g.adb.TapPoint(point)
 			}
 			break
 		}
