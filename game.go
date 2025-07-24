@@ -22,7 +22,6 @@ type Game struct {
 var BaoTuTask = false
 var WaBaoTuTask = false
 var ShimenTask = false
-var ZhuoGuiTask = false
 var YunBiaoTask = false
 
 var GlobalFlag = true
@@ -120,7 +119,9 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 	}
 	if yunBiao {
 		if !YunBiaoTask {
-			g.StartYunBiao()
+			if g.StartYunBiao() {
+				g.log.SendLog("运镖进行中....")
+			}
 			YunBiaoTask = true
 		}
 	}
@@ -901,23 +902,38 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(RightArrow)
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
+				continue
 			}
 			time.Sleep(10 * time.Second)
-			//break
 		} else {
-			//g.ActiveTaskButton()
 			if bl, _ := g.HasImage("continue-zhuogui"); bl {
 				g.log.SendLog("已捉完一轮鬼，是否继续？")
 				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
 				time.Sleep(8 * time.Second)
+				if g.monitorTeamNumber() {
+					return false
+				}
 				g.monitorZhongKuiDuiHua()
 				break
 			}
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				_ = g.adb.TapPoint(point)
 				g.log.SendLog("已有捉鬼任务，点击追踪")
+			} else {
+				if err := g.OpenTeamDialog(); err != nil {
+					g.log.SendLog("打开队伍界面失败")
+				}
+				g.checkLiXian()
+				_ = g.FindZhongKui()
 			}
 		}
+	}
+	return false
+}
+
+func (g *Game) monitorTeamNumber() bool {
+	if bl, _ := g.HasImage("team-number-less"); bl {
+		return true
 	}
 	return false
 }
@@ -967,6 +983,12 @@ func (g *Game) HasLiXian() bool {
 	if bl {
 		return true
 	}
+	if bl, _ := g.MatchTemplateFullGray(fullGray, "images/dadangjia.png", 0.8); bl {
+		return true
+	}
+	if bl, _ := g.MatchTemplateFullGray(fullGray, "images/sunwukong.png", 0.8); bl {
+		return true
+	}
 	return false
 }
 
@@ -1007,8 +1029,6 @@ func (g *Game) checkLiXian() {
 		}
 	}
 	_ = g.CloseTeamDialog()
-	g.CloseLeftArrow()
-
 }
 
 func (g *Game) CloseLeftArrow() {
@@ -1036,17 +1056,17 @@ func (g *Game) FindZhengBiaoTou() error {
 	return nil
 }
 
-func (g *Game) StartYunBiao() {
+func (g *Game) StartYunBiao() bool {
 	g.log.SendLog("开始运镖...寻找郑镖头...")
 	if err := g.FindZhengBiaoTou(); err != nil {
 		g.log.SendLog("未找到郑镖头")
-		return
+		return true
 	}
 	index := 0
 	for {
 		if index >= 3 {
 			g.log.SendLog("寻找郑镖头超时...")
-			return
+			return true
 		}
 		g.log.SendLog("寻找郑镖头路上...")
 		if bl, _ := g.HasImage("biao-tou-dui-hua"); bl {
@@ -1062,7 +1082,7 @@ func (g *Game) StartYunBiao() {
 	for {
 		if g.CheckStop() {
 			g.log.SendLog("主动取消运镖任务")
-			return
+			return true
 		}
 		if bl, _ := g.IsBettle(); bl {
 			g.log.SendLog("糟糕，碰到劫镖的了。。。战斗吧！")
@@ -1088,4 +1108,5 @@ func (g *Game) StartYunBiao() {
 			_ = fullGray.Close()
 		}
 	}
+	return false
 }

@@ -105,8 +105,8 @@ onMounted(() => {
             <el-checkbox v-model="form.baoTu">打宝图任务</el-checkbox>
             <el-checkbox v-model="form.waBaoTu">挖宝图任务</el-checkbox>
             <el-checkbox v-model="form.shimen">师门任务</el-checkbox>
-            <el-checkbox v-model="form.zhuoGui">捉鬼任务</el-checkbox>
             <el-checkbox v-model="form.yunBiao">运镖任务</el-checkbox>
+            <el-checkbox v-model="form.zhuoGui">捉鬼任务</el-checkbox>
           </el-form-item>
         </el-col>
       </el-row>

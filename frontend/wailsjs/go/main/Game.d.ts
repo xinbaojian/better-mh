@@ -66,7 +66,7 @@ export function StartShimenTask():Promise<void>;
 
 export function StartWaBaoTuTask():Promise<void>;
 
-export function StartYunBiao():Promise<void>;
+export function StartYunBiao():Promise<boolean>;
 
 export function Startup(arg1:context.Context,arg2:adb.Adb,arg3:logs.Log):Promise<void>;
 
