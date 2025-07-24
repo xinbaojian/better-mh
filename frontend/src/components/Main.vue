@@ -8,11 +8,13 @@ import {EventsOn} from "../../wailsjs/runtime";
 
 const form = reactive({
   ip: '100.94.171.85',
-  port: '16416',
+  port: '16384',
+  // port: '16416',
   baoTu: false,
   waBaoTu: false,
   shimen: false,
   zhuoGui: false,
+  yunBiao: false,
 })
 
 const state = reactive({
@@ -49,7 +51,7 @@ function startGameClick() {
   console.log("开始游戏", form)
   logs.value = []
   state.startGame = true
-  StartGame(form.baoTu, form.waBaoTu, form.shimen, form.zhuoGui)
+  StartGame(form.baoTu, form.waBaoTu, form.shimen, form.zhuoGui,form.yunBiao)
 }
 
 function stopGameClick() {
@@ -69,7 +71,10 @@ onMounted(() => {
   }
   EventsOn("backendLog", (message: string) => {
     logs.value.push(message)
-    console.log(message)
+    if (message.includes("请先连接ADB")){
+      state.connected = false
+      state.startGame = false
+    }
     nextTick(() => {
       if (logContainer.value) {
         logContainer.value.scrollTop = logContainer.value.scrollHeight
@@ -101,6 +106,7 @@ onMounted(() => {
             <el-checkbox v-model="form.waBaoTu">挖宝图任务</el-checkbox>
             <el-checkbox v-model="form.shimen">师门任务</el-checkbox>
             <el-checkbox v-model="form.zhuoGui">捉鬼任务</el-checkbox>
+            <el-checkbox v-model="form.yunBiao">运镖任务</el-checkbox>
           </el-form-item>
         </el-col>
       </el-row>

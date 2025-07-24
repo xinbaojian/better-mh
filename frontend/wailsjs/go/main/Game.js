@@ -34,6 +34,10 @@ export function FindXiaoEr() {
   return window['go']['main']['Game']['FindXiaoEr']();
 }
 
+export function FindZhengBiaoTou() {
+  return window['go']['main']['Game']['FindZhengBiaoTou']();
+}
+
 export function FindZhongKui() {
   return window['go']['main']['Game']['FindZhongKui']();
 }
@@ -102,8 +106,8 @@ export function StartBaoTuTask() {
   return window['go']['main']['Game']['StartBaoTuTask']();
 }
 
-export function StartGame(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['Game']['StartGame'](arg1, arg2, arg3, arg4);
+export function StartGame(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['Game']['StartGame'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function StartHuoDongTask(arg1, arg2) {
@@ -116,6 +120,10 @@ export function StartShimenTask() {
 
 export function StartWaBaoTuTask() {
   return window['go']['main']['Game']['StartWaBaoTuTask']();
+}
+
+export function StartYunBiao() {
+  return window['go']['main']['Game']['StartYunBiao']();
 }
 
 export function Startup(arg1, arg2, arg3) {

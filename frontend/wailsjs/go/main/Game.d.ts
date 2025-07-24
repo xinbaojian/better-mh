@@ -22,6 +22,8 @@ export function CloseTeamDialog():Promise<void>;
 
 export function FindXiaoEr():Promise<void>;
 
+export function FindZhengBiaoTou():Promise<void>;
+
 export function FindZhongKui():Promise<void>;
 
 export function GotoChangAn():Promise<void>;
@@ -56,13 +58,15 @@ export function OpenTeamDialog():Promise<void>;
 
 export function StartBaoTuTask():Promise<void>;
 
-export function StartGame(arg1:boolean,arg2:boolean,arg3:boolean,arg4:boolean):Promise<void>;
+export function StartGame(arg1:boolean,arg2:boolean,arg3:boolean,arg4:boolean,arg5:boolean):Promise<void>;
 
 export function StartHuoDongTask(arg1:string,arg2:string):Promise<void>;
 
 export function StartShimenTask():Promise<void>;
 
 export function StartWaBaoTuTask():Promise<void>;
+
+export function StartYunBiao():Promise<void>;
 
 export function Startup(arg1:context.Context,arg2:adb.Adb,arg3:logs.Log):Promise<void>;
 

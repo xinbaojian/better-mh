@@ -23,6 +23,7 @@ var BaoTuTask = false
 var WaBaoTuTask = false
 var ShimenTask = false
 var ZhuoGuiTask = false
+var YunBiaoTask = false
 
 var GlobalFlag = true
 
@@ -35,8 +36,14 @@ var MapChangAn = image.Point{X: 600, Y: 400}
 
 var MapDetail = image.Point{X: 145, Y: 65}
 
+// MapZhongKui 钟馗坐标
 var MapZhongKui = image.Point{X: 390, Y: 410}
+
+// MapDianXiaoEr 店小二坐标
 var MapDianXiaoEr = image.Point{X: 785, Y: 380}
+
+// MapZhengBiaoTou ß郑镖头坐标
+var MapZhengBiaoTou = image.Point{X: 280, Y: 425}
 
 var RightArrow = image.Point{
 	X: 33,
@@ -71,8 +78,12 @@ func (g *Game) Startup(ctx context.Context, adb *adb.Adb, log *logs.Log) {
 }
 
 // StartGame 启动游戏
-func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui bool) {
+func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 	GlobalFlag = true
+	if !g.adb.Connected {
+		g.log.SendLog("请先连接ADB")
+		return
+	}
 	if baoTu {
 		if !BaoTuTask {
 			g.log.SendLog("开始打宝图任务")
@@ -105,6 +116,12 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui bool) {
 			if g.monitorZhuogui() {
 				break
 			}
+		}
+	}
+	if yunBiao {
+		if !YunBiaoTask {
+			g.StartYunBiao()
+			YunBiaoTask = true
 		}
 	}
 }
@@ -997,5 +1014,78 @@ func (g *Game) checkLiXian() {
 func (g *Game) CloseLeftArrow() {
 	if bl, _ := g.IsBettle(); bl {
 		_ = g.adb.TapPoint(LeftArrow)
+	}
+}
+
+// FindZhengBiaoTou 寻找正标头
+func (g *Game) FindZhengBiaoTou() error {
+	_ = g.CloseDialog()
+	_ = g.GotoChangAn()
+	if err := g.adb.TapPoint(MapPoint); err != nil {
+		g.log.SendLog("点击地图失败")
+		return err
+	}
+	if err := g.adb.TapPoint(MapDetail); err != nil {
+		g.log.SendLog("点击地图详情失败")
+		return err
+	}
+	if err := g.adb.TapPoint(MapZhengBiaoTou); err != nil {
+		g.log.SendLog("点击地图详情失败")
+		return err
+	}
+	return nil
+}
+
+func (g *Game) StartYunBiao() {
+	g.log.SendLog("开始运镖...寻找郑镖头...")
+	if err := g.FindZhengBiaoTou(); err != nil {
+		g.log.SendLog("未找到郑镖头")
+		return
+	}
+	index := 0
+	for {
+		if index >= 3 {
+			g.log.SendLog("寻找郑镖头超时...")
+			return
+		}
+		g.log.SendLog("寻找郑镖头路上...")
+		if bl, _ := g.HasImage("biao-tou-dui-hua"); bl {
+			g.log.SendLog("已找到郑镖头，领取运镖任务")
+			_ = g.adb.TapPoint(image.Point{X: 1090, Y: 400})
+			_ = g.adb.TapPoint(image.Point{X: 750, Y: 420})
+			break
+		}
+		index += 1
+		time.Sleep(5 * time.Second)
+	}
+	// 判断是否领取成功
+	for {
+		if g.CheckStop() {
+			g.log.SendLog("主动取消运镖任务")
+			return
+		}
+		if bl, _ := g.IsBettle(); bl {
+			g.log.SendLog("糟糕，碰到劫镖的了。。。战斗吧！")
+		} else {
+			fullGray, err := g.adb.CaptureMat()
+			if err != nil {
+				runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
+			}
+			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/yun-biao-ing.png", 0.8); bl {
+				g.log.SendLog("运镖中....")
+				time.Sleep(20 * time.Second)
+			}
+			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/biao-tou-dui-hua.png", 0.8); bl {
+				g.log.SendLog("已找到郑镖头，领取运镖任务")
+				_ = g.adb.TapPoint(image.Point{X: 1090, Y: 400})
+				_ = g.adb.TapPoint(image.Point{X: 750, Y: 420})
+				time.Sleep(5 * time.Second)
+			}
+			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/yun-biao-three.png", 0.8); bl {
+				g.log.SendLog("最后一次普通运镖了～～～")
+				break
+			}
+			_ = fullGray.Close()
+		}
 	}
 }
