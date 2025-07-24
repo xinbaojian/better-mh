@@ -540,25 +540,9 @@ func (g *Game) StartBaoTuTask() error {
 	// 清理弹窗
 	_ = g.CloseDialog()
 	// 激活任务按钮
-	//g.ActiveTaskButton()
+	g.ActiveTaskButton()
 	// 去长安
 	_ = g.FindXiaoEr()
-	// 下拉任务列表
-	//g.adb.SwipeTaskDown(2)
-	//// 检查是否已领取宝图任务
-	//bl, point := g.MatchTemplate("images/baotu-task-icon.png", 0.8)
-	//if bl {
-	//	if err := g.adb.TapPoint(point); err != nil {
-	//		return err
-	//	}
-	//	g.log.SendLog("已领取宝图任务,继续任务")
-	//	g.monitorBaoTuTask()
-	//	return nil
-	//}
-	//// 打开活动页领取宝图任务
-	//if err := g.StartHuoDongTask("宝图任务", "baotu"); err != nil {
-	//	return err
-	//}
 	g.log.SendLog("开始监听领取任务菜单")
 	// 开始接取任务
 	for {
@@ -870,7 +854,7 @@ func (g *Game) monitorZhuogui() bool {
 		g.log.SendLog("手动终止任务...")
 		return true
 	}
-	// 循环检查是否与钟馗对话中
+
 	if g.NeedTeamGuiUp() {
 		// 判断是否成功领取捉鬼任务
 		if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
@@ -888,6 +872,41 @@ func (g *Game) monitorZhuogui() bool {
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
 		}
 	}
+	for {
+		if !GlobalFlag {
+			g.log.SendLog("手动停止捉鬼任务")
+			return true
+		}
+		if bl, _ := g.IsBettle(); bl {
+			g.log.SendLog("捉鬼战斗中...")
+			if g.HasLiXian() {
+				g.log.SendLog("有离线角色,打开队伍界面")
+				_ = g.adb.TapPoint(RightArrow)
+				_ = g.adb.TapPoint(LeftTeamIcon)
+				g.checkLiXian()
+			}
+			time.Sleep(10 * time.Second)
+			//break
+		} else {
+			//g.ActiveTaskButton()
+			if bl, _ := g.HasImage("continue-zhuogui"); bl {
+				g.log.SendLog("已捉完一轮鬼，是否继续？")
+				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
+				time.Sleep(8 * time.Second)
+				g.monitorZhongKuiDuiHua()
+				break
+			}
+			if bl, point := g.HasImage("zhuo-na"); bl {
+				_ = g.adb.TapPoint(point)
+				g.log.SendLog("已有捉鬼任务，点击追踪")
+			}
+		}
+	}
+	return false
+}
+
+func (g *Game) monitorZhongKuiDuiHua() bool {
+	// 循环检查是否与钟馗对话中
 	index := 0
 	for {
 		if index > 10 {
@@ -909,36 +928,7 @@ func (g *Game) monitorZhuogui() bool {
 		time.Sleep(5 * time.Second)
 		index += 1
 	}
-
-	for {
-		if !GlobalFlag {
-			g.log.SendLog("手动停止捉鬼任务")
-			return true
-		}
-		if bl, _ := g.IsBettle(); bl {
-			g.log.SendLog("捉鬼战斗中...")
-			if g.HasLiXian() {
-				g.log.SendLog("有离线角色,打开队伍界面")
-				_ = g.adb.TapPoint(RightArrow)
-				_ = g.adb.TapPoint(LeftTeamIcon)
-				g.checkLiXian()
-			}
-			time.Sleep(10 * time.Second)
-			//break
-		} else {
-			//g.ActiveTaskButton()
-			if bl, _ := g.HasImage("continue-zhuogui"); bl {
-				g.log.SendLog("已捉完一轮鬼，是否继续？")
-				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
-				break
-			}
-			if bl, point := g.HasImage("zhuo-na"); bl {
-				_ = g.adb.TapPoint(point)
-				g.log.SendLog("已有捉鬼任务，点击追踪")
-			}
-		}
-	}
-	return false
+	return true
 }
 
 func (g *Game) HasLiXian() bool {
@@ -1005,7 +995,7 @@ func (g *Game) checkLiXian() {
 }
 
 func (g *Game) CloseLeftArrow() {
-	if bl, _ := g.HasImage("left-arrow"); bl {
+	if bl, _ := g.IsBettle(); bl {
 		_ = g.adb.TapPoint(LeftArrow)
 	}
 }
