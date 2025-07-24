@@ -30,6 +30,10 @@ export function CloseTeamDialog() {
   return window['go']['main']['Game']['CloseTeamDialog']();
 }
 
+export function FindXiaoEr() {
+  return window['go']['main']['Game']['FindXiaoEr']();
+}
+
 export function FindZhongKui() {
   return window['go']['main']['Game']['FindZhongKui']();
 }

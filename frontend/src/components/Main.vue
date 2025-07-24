@@ -1,14 +1,14 @@
 <script setup lang="ts">
 
-import {onMounted, reactive, ref, nextTick} from "vue";
-import {Connect, Disconnect,CaptureMat,CheckConnected} from "../../wailsjs/go/adb/Adb";
-import {StartGame,StopGame,TestButton} from "../../wailsjs/go/main/Game";
+import {nextTick, onMounted, reactive, ref} from "vue";
+import {CaptureMat, CheckConnected, Connect, Disconnect} from "../../wailsjs/go/adb/Adb";
+import {StartGame, StopGame, TestButton} from "../../wailsjs/go/main/Game";
 import {ElMessage} from "element-plus";
 import {EventsOn} from "../../wailsjs/runtime";
 
 const form = reactive({
-  ip: 'localhost',
-  port: '16384',
+  ip: '100.94.171.85',
+  port: '16416',
   baoTu: false,
   waBaoTu: false,
   shimen: false,
@@ -45,22 +45,28 @@ function disconnect() {
   })
 }
 
-function startGameClick(){
-  console.log("开始游戏",form)
+function startGameClick() {
+  console.log("开始游戏", form)
   logs.value = []
   state.startGame = true
-  StartGame(form.baoTu, form.waBaoTu,form.shimen, form.zhuoGui)
+  StartGame(form.baoTu, form.waBaoTu, form.shimen, form.zhuoGui)
 }
 
-function stopGameClick(){
+function stopGameClick() {
   StopGame()
   state.startGame = false
 }
 
+function clearLog() {
+  logs.value = []
+}
+
 onMounted(() => {
-  CheckConnected(form.ip, form.port).then((res:boolean) => {
-    state.connected = res
-  })
+  if (form.ip) {
+    CheckConnected(form.ip, form.port).then((res: boolean) => {
+      state.connected = res
+    })
+  }
   EventsOn("backendLog", (message: string) => {
     logs.value.push(message)
     console.log(message)
@@ -99,16 +105,25 @@ onMounted(() => {
         </el-col>
       </el-row>
       <el-row>
-        <el-col :span="8">
-          <el-button v-if="!state.connected" type="primary" @click="connect">Adb链接</el-button>
-          <el-button v-else type="danger" @click="disconnect">断开ADB</el-button>
-          <el-button type="primary" @click="TestButton">测试</el-button>
-          <el-button type="primary" @click="CaptureMat">截图</el-button>
-          <el-button v-if="!state.startGame" type="primary" @click="startGameClick">开始</el-button>
-          <el-button v-else type="danger" @click="stopGameClick">停止</el-button>
+
+        <el-col :span="12">
+          <el-form-item>
+            <el-button v-if="!state.connected" type="primary" @click="connect">Adb链接</el-button>
+            <el-button v-else type="danger" @click="disconnect">断开ADB</el-button>
+            <el-button v-if="!state.startGame" type="primary" @click="startGameClick">开始</el-button>
+            <el-button v-else type="danger" @click="stopGameClick">停止</el-button>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item>
+            <el-button type="primary" @click="TestButton">测试</el-button>
+            <el-button type="primary" @click="CaptureMat">截图</el-button>
+            <el-button type="danger" @click="clearLog">清空日志</el-button>
+          </el-form-item>
         </el-col>
       </el-row>
     </el-form>
+
     <div class="log-container" ref="logContainer">
       <div v-for="log in logs" class="log-entry">{{ log }}</div>
     </div>
@@ -124,7 +139,7 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.el-form{
+.el-form {
   padding-top: 20px;
   width: 100%;
 }

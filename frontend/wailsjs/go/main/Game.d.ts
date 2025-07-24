@@ -20,6 +20,8 @@ export function CloseLeftArrow():Promise<void>;
 
 export function CloseTeamDialog():Promise<void>;
 
+export function FindXiaoEr():Promise<void>;
+
 export function FindZhongKui():Promise<void>;
 
 export function GotoChangAn():Promise<void>;

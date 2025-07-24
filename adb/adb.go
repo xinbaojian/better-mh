@@ -7,7 +7,6 @@ import (
 	"fmt"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"gocv.io/x/gocv"
-	"golang.org/x/sys/windows"
 	"image"
 	"os"
 	"os/exec"
@@ -137,17 +136,17 @@ func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 		return gocv.NewMat(), fmt.Errorf("请先连接设备")
 	}
 	// 以下是直接从内存获取截图的方法，目前使用文件方式替代
-// cmd := exec.Command("adb", "exec-out", "screencap", "-p")
-// out, err := cmd.Output()
-// if err != nil {
-// 	wailsRuntime.LogErrorf(adb.ctx, "截图失败 %v", err)
-// 	return gocv.Mat{}, err
-// }
-// // 将截图数据存储在内存中
-// img, err := gocv.IMDecode(out, gocv.IMReadColor)
-// if err != nil || img.Empty() {
-// 	return gocv.Mat{}, fmt.Errorf("读取图像失败: %v", err)
-// }
+	// cmd := exec.Command("adb", "exec-out", "screencap", "-p")
+	// out, err := cmd.Output()
+	// if err != nil {
+	// 	wailsRuntime.LogErrorf(adb.ctx, "截图失败 %v", err)
+	// 	return gocv.Mat{}, err
+	// }
+	// // 将截图数据存储在内存中
+	// img, err := gocv.IMDecode(out, gocv.IMReadColor)
+	// if err != nil || img.Empty() {
+	// 	return gocv.Mat{}, fmt.Errorf("读取图像失败: %v", err)
+	// }
 	adb.mu.Lock()
 	defer adb.mu.Unlock()
 	// 在设备上执行截图命令
@@ -198,11 +197,11 @@ func (adb *Adb) Swipe(beginX, beginY, endX, endY string) {
 	adb.log.SendLog("滑动成功 " + logStr)
 }
 
-// swipeTask 模拟任务栏滑动
+// SwipeTask 模拟任务栏滑动
 // 参数:
 //
 //	up bool 是否向上滑动
-func (adb *Adb) swipeTask(up bool) {
+func (adb *Adb) SwipeTask(up bool) {
 	beginX := "1150"
 	beginY := "200"
 	endX := "1150"
@@ -225,13 +224,13 @@ func (adb *Adb) swipeTask(up bool) {
 
 // SwipeTaskUp 模拟上拉任务栏
 func (adb *Adb) SwipeTaskUp() {
-	adb.swipeTask(true)
+	adb.SwipeTask(true)
 }
 
 // SwipeTaskDown 模拟下拉任务栏
 func (adb *Adb) SwipeTaskDown(num int) {
 	for i := 0; i < num; i++ {
-		adb.swipeTask(false)
+		adb.SwipeTask(false)
 	}
 
 }
@@ -261,11 +260,7 @@ func createHiddenCommand(name string, args ...string) *exec.Cmd {
 	cmd := exec.Command(name, args...)
 	// 仅在Windows系统下设置隐藏窗口属性
 	if runtime.GOOS == "windows" {
-		// 0x08000000 是 CREATE_NO_WINDOW 标志
-		cmd.SysProcAttr = &windows.SysProcAttr{
-			HideWindow:    true,
-			CreationFlags: 0x08000000,
-		}
+		setSysProcAttr(cmd)
 	}
 	return cmd
 }

@@ -28,6 +28,8 @@ export function SwipePackageDown(arg1:number):Promise<void>;
 
 export function SwipePackageUp(arg1:number):Promise<void>;
 
+export function SwipeTask(arg1:boolean):Promise<void>;
+
 export function SwipeTaskDown(arg1:number):Promise<void>;
 
 export function SwipeTaskUp():Promise<void>;

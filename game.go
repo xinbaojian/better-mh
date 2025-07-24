@@ -31,6 +31,13 @@ var MapPoint = image.Point{
 	Y: 40,
 }
 
+var MapChangAn = image.Point{X: 600, Y: 400}
+
+var MapDetail = image.Point{X: 145, Y: 65}
+
+var MapZhongKui = image.Point{X: 390, Y: 410}
+var MapDianXiaoEr = image.Point{X: 785, Y: 380}
+
 var RightArrow = image.Point{
 	X: 33,
 	Y: 54,
@@ -394,7 +401,7 @@ func (g *Game) CloseDialog() error {
 			g.log.SendLog(fmt.Sprintf("加载图标失败: %v", err))
 			return err
 		}
-
+		index := 0
 		for idx := 0; idx < templateCount; idx++ {
 			templatePath := fmt.Sprintf("images/close%d.png", idx)
 			bl, point := g.MatchTemplateFullGray(fullGray, templatePath, matchThreshold)
@@ -407,11 +414,15 @@ func (g *Game) CloseDialog() error {
 				}
 				break
 			}
+			index += 1
 		}
-		if g.HasPackage() {
+		if index >= 3 {
 			break
 		}
 		_ = fullGray.Close() // 手动释放资源
+	}
+	if !g.HasPackage() {
+		g.log.SendLog("还有未识别的弹层！！！！！")
 	}
 	end := time.Now()
 	g.log.SendLog(fmt.Sprintf("已关闭所有对话框,耗时:%v毫秒", end.Sub(begin).Milliseconds()))
@@ -529,23 +540,25 @@ func (g *Game) StartBaoTuTask() error {
 	// 清理弹窗
 	_ = g.CloseDialog()
 	// 激活任务按钮
-	g.ActiveTaskButton()
+	//g.ActiveTaskButton()
+	// 去长安
+	_ = g.FindXiaoEr()
 	// 下拉任务列表
-	g.adb.SwipeTaskDown(2)
-	// 检查是否已领取宝图任务
-	bl, point := g.MatchTemplate("images/baotu-task-icon.png", 0.8)
-	if bl {
-		if err := g.adb.TapPoint(point); err != nil {
-			return err
-		}
-		g.log.SendLog("已领取宝图任务,继续任务")
-		g.monitorBaoTuTask()
-		return nil
-	}
-	// 打开活动页领取宝图任务
-	if err := g.StartHuoDongTask("宝图任务", "baotu"); err != nil {
-		return err
-	}
+	//g.adb.SwipeTaskDown(2)
+	//// 检查是否已领取宝图任务
+	//bl, point := g.MatchTemplate("images/baotu-task-icon.png", 0.8)
+	//if bl {
+	//	if err := g.adb.TapPoint(point); err != nil {
+	//		return err
+	//	}
+	//	g.log.SendLog("已领取宝图任务,继续任务")
+	//	g.monitorBaoTuTask()
+	//	return nil
+	//}
+	//// 打开活动页领取宝图任务
+	//if err := g.StartHuoDongTask("宝图任务", "baotu"); err != nil {
+	//	return err
+	//}
 	g.log.SendLog("开始监听领取任务菜单")
 	// 开始接取任务
 	for {
@@ -553,15 +566,30 @@ func (g *Game) StartBaoTuTask() error {
 			g.log.SendLog("打宝图任务手动结束")
 			break
 		}
-		if bl, point := g.HasImage("tingtingwufang"); bl {
-			time.Sleep(3 * time.Second)
-			continue
-		} else {
-			if err := g.adb.TapPoint(point); err != nil {
-				g.log.SendLog(fmt.Sprintf("领取宝图任务失败: %v", err))
+		if bl, _ := g.HasImage("dian-xiao-er"); bl {
+			g.log.SendLog("与店小二对话中...")
+			if bl, point := g.HasImage("tingtingwufang"); bl {
+				g.log.SendLog("宝图！拿来吧你～～～")
+				_ = g.adb.TapPoint(point)
+				break
+			} else {
+				g.log.SendLog("店小二没宝图消息了...")
 			}
-			g.log.SendLog("领取打宝图任务")
+			time.Sleep(1 * time.Second)
+			if bl, point := g.HasImage("baotu-task-icon"); bl {
+				g.log.SendLog("先完成已打听到的宝图消息吧~~")
+				_ = g.adb.TapPoint(point)
+				_ = g.adb.TapPoint(point)
+				break
+			}
+			BaoTuTask = true
+			g.log.SendLog("宝图打完了～～")
+			_ = g.adb.TapPoint(image.Point{X: 660, Y: 380})
 			break
+		} else {
+			g.log.SendLog("寻找店小二路上...")
+			time.Sleep(5 * time.Second)
+			continue
 		}
 	}
 	g.monitorBaoTuTask()
@@ -569,25 +597,38 @@ func (g *Game) StartBaoTuTask() error {
 }
 
 func (g *Game) monitorBaoTuTask() {
+	if g.CheckStop() {
+		return
+	}
+	if BaoTuTask {
+		return
+	}
 	g.log.SendLog("开始监听宝图任务进度...")
 	index := 0
 	check := 0
-	for !BaoTuTask && GlobalFlag {
+	for !BaoTuTask {
+		if g.CheckStop() {
+			return
+		}
 		g.log.SendLog(fmt.Sprintf("第%d次监听宝图任务进度...", index+1))
+		time.Sleep(2 * time.Second)
 		index += 1
 		bl, _ := g.IsBettle()
 		if bl {
-			g.log.SendLog("战斗中...")
+			g.log.SendLog("抢宝图中...")
 			time.Sleep(1 * time.Minute)
 			continue
-		}
-		bl, _ = g.MatchTemplate("images/baotu-task-icon.png", 0.8)
-		if !bl {
-			time.Sleep(3 * time.Second)
-			check += 1
-			if check > 3 {
-				BaoTuTask = true
-				g.log.SendLog("宝图任务完成")
+		} else {
+			if bl, point := g.HasImage("baotu-task-icon"); bl {
+				g.log.SendLog("点击宝图任务~~")
+				_ = g.adb.TapPoint(point)
+			} else {
+				time.Sleep(3 * time.Second)
+				check += 1
+				if check > 3 {
+					BaoTuTask = true
+					g.log.SendLog("宝图任务完成")
+				}
 			}
 		}
 		time.Sleep(5 * time.Second)
@@ -775,11 +816,11 @@ func (g *Game) FindZhongKui() error {
 		g.log.SendLog("点击地图失败")
 		return err
 	}
-	if err := g.adb.TapPoint(image.Point{X: 145, Y: 65}); err != nil {
+	if err := g.adb.TapPoint(MapDetail); err != nil {
 		g.log.SendLog("点击地图详情失败")
 		return err
 	}
-	if err := g.adb.TapPoint(image.Point{X: 390, Y: 410}); err != nil {
+	if err := g.adb.TapPoint(MapZhongKui); err != nil {
 		g.log.SendLog("点击钟馗失败")
 		return err
 	}
@@ -794,10 +835,32 @@ func (g *Game) GotoChangAn() error {
 		g.log.SendLog("点击地图失败")
 		return err
 	}
-	if err := g.adb.TapPoint(image.Point{X: 600, Y: 400}); err != nil {
+	if err := g.adb.TapPoint(MapChangAn); err != nil {
 		g.log.SendLog("去长安失败")
 		return err
 	}
+	return nil
+}
+
+func (g *Game) FindXiaoEr() error {
+	_ = g.GotoChangAn()
+	if g.CheckStop() {
+		return errors.New("任务已取消")
+	}
+	g.log.SendLog("寻找小二ing...")
+	if err := g.adb.TapPoint(MapPoint); err != nil {
+		g.log.SendLog("点击地图失败")
+		return err
+	}
+	if err := g.adb.TapPoint(MapDetail); err != nil {
+		g.log.SendLog("点击地图详情失败")
+		return err
+	}
+	if err := g.adb.TapPoint(MapDianXiaoEr); err != nil {
+		g.log.SendLog("点击店小二失败")
+		return err
+	}
+	g.log.SendLog("Bingo! 找到你了..店小二！")
 	return nil
 }
 
@@ -809,20 +872,6 @@ func (g *Game) monitorZhuogui() bool {
 	}
 	// 循环检查是否与钟馗对话中
 	if g.NeedTeamGuiUp() {
-		for {
-			if !GlobalFlag {
-				g.log.SendLog("手动停止捉鬼任务")
-				return true
-			}
-			if bl, point := g.HasImage("zhuogui-task"); bl {
-				g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
-				if err := g.adb.TapPoint(point); err != nil {
-					g.log.SendLog("点击捉鬼任务按钮失败")
-				}
-				break
-			}
-			time.Sleep(5 * time.Second)
-		}
 		// 判断是否成功领取捉鬼任务
 		if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
 			g.log.SendLog("领取捉鬼任务失败")
@@ -838,6 +887,27 @@ func (g *Game) monitorZhuogui() bool {
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
 		}
+	}
+	index := 0
+	for {
+		if index > 10 {
+			g.log.SendLog("找钟馗超时了。。。重新开始..")
+			return false
+		}
+		if !GlobalFlag {
+			g.log.SendLog("手动停止捉鬼任务")
+			return true
+		}
+		g.log.SendLog("去找钟馗领取任务")
+		if bl, point := g.HasImage("zhuogui-task"); bl {
+			g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
+			if err := g.adb.TapPoint(point); err != nil {
+				g.log.SendLog("点击捉鬼任务按钮失败")
+			}
+			break
+		}
+		time.Sleep(5 * time.Second)
+		index += 1
 	}
 
 	for {

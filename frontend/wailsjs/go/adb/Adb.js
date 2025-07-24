@@ -46,6 +46,10 @@ export function SwipePackageUp(arg1) {
   return window['go']['adb']['Adb']['SwipePackageUp'](arg1);
 }
 
+export function SwipeTask(arg1) {
+  return window['go']['adb']['Adb']['SwipeTask'](arg1);
+}
+
 export function SwipeTaskDown(arg1) {
   return window['go']['adb']['Adb']['SwipeTaskDown'](arg1);
 }
