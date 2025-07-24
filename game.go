@@ -65,6 +65,7 @@ func (g *Game) Startup(ctx context.Context, adb *adb.Adb, log *logs.Log) {
 
 // StartGame 启动游戏
 func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui bool) {
+	GlobalFlag = true
 	if baoTu {
 		if !BaoTuTask {
 			g.log.SendLog("开始打宝图任务")
@@ -867,7 +868,7 @@ func (g *Game) monitorZhuogui() bool {
 			}
 		}
 	}
-	return true
+	return false
 }
 
 func (g *Game) HasLiXian() bool {
