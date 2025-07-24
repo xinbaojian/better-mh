@@ -5,11 +5,13 @@ import (
 	"better-mh/message"
 	"context"
 	"fmt"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"gocv.io/x/gocv"
+	"golang.org/x/sys/windows"
 	"image"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -46,7 +48,7 @@ func (adb *Adb) Connect(ip string, port string) bool {
 		return false
 	}
 	address := ip + ":" + port
-	cmd := exec.Command("adb", "connect", address)
+	cmd := createHiddenCommand("adb", "connect", address)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return false
@@ -73,7 +75,7 @@ func (adb *Adb) Disconnect(ip string, port string) bool {
 	}
 	address := ip + ":" + port
 	address = fmt.Sprintf("%s:%s", ip, port)
-	cmd := exec.Command("adb", "disconnect", address)
+	cmd := createHiddenCommand("adb", "disconnect", address)
 	err := cmd.Run()
 	if err != nil {
 		adb.Connected = false
@@ -91,7 +93,7 @@ func (adb *Adb) CheckConnected(ip string, port string) bool {
 		return false
 	}
 	address := fmt.Sprintf("%s:%s", ip, port)
-	cmd := exec.Command("adb", "devices")
+	cmd := createHiddenCommand("adb", "devices")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return false
@@ -113,18 +115,18 @@ func (adb *Adb) Screenshot(filePath string) bool {
 		adb.msg.ShowMessageDialog("错误", "请先连接设备")
 		return false
 	}
-	cmd := exec.Command("adb", "exec-out", "screencap", "-p")
+	cmd := createHiddenCommand("adb", "exec-out", "screencap", "-p")
 	imgBytes, err := cmd.Output()
 	if err != nil {
 		return false
 	}
 	fileName := fmt.Sprintf("%s/a.png", filePath)
-	runtime.LogInfo(adb.ctx, "正在保存截图...")
+	wailsRuntime.LogInfo(adb.ctx, "正在保存截图...")
 	err = os.WriteFile(fileName, imgBytes, 0644)
 	if err != nil {
-		runtime.LogInfo(adb.ctx, "保存截图失败"+err.Error())
+		wailsRuntime.LogInfo(adb.ctx, "保存截图失败"+err.Error())
 	}
-	runtime.LogInfo(adb.ctx, "截图保存成功")
+	wailsRuntime.LogInfo(adb.ctx, "截图保存成功")
 	return err == nil
 }
 
@@ -134,27 +136,28 @@ func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 		adb.msg.ShowMessageDialog("错误提示", "请先连接设备")
 		return gocv.NewMat(), fmt.Errorf("请先连接设备")
 	}
-	//cmd := exec.Command("adb", "exec-out", "screencap", "-p")
-	//out, err := cmd.Output()
-	//if err != nil {
-	//	runtime.LogErrorf(adb.ctx, "截图失败 %v", err)
-	//	return gocv.Mat{}, err
-	//}
-	////将截图数据存储在内存中
-	//img, err := gocv.IMDecode(out, gocv.IMReadColor)
-	//if err != nil || img.Empty() {
-	//	return gocv.Mat{}, fmt.Errorf("读取图像失败: %v", err)
-	//}
+	// 以下是直接从内存获取截图的方法，目前使用文件方式替代
+// cmd := exec.Command("adb", "exec-out", "screencap", "-p")
+// out, err := cmd.Output()
+// if err != nil {
+// 	wailsRuntime.LogErrorf(adb.ctx, "截图失败 %v", err)
+// 	return gocv.Mat{}, err
+// }
+// // 将截图数据存储在内存中
+// img, err := gocv.IMDecode(out, gocv.IMReadColor)
+// if err != nil || img.Empty() {
+// 	return gocv.Mat{}, fmt.Errorf("读取图像失败: %v", err)
+// }
 	adb.mu.Lock()
 	defer adb.mu.Unlock()
 	// 在设备上执行截图命令
-	cmd := exec.Command("adb", "shell", "screencap", "-p", "/sdcard/screen.png")
+	cmd := createHiddenCommand("adb", "shell", "screencap", "-p", "/sdcard/screen.png")
 	if err := cmd.Run(); err != nil {
 		return gocv.Mat{}, fmt.Errorf("截图失败: %v", err)
 	}
 
 	// 从设备拉取截图文件
-	cmd = exec.Command("adb", "pull", "/sdcard/screen.png", "screen.png")
+	cmd = createHiddenCommand("adb", "pull", "/sdcard/screen.png", "screen.png")
 	if err := cmd.Run(); err != nil {
 		return gocv.Mat{}, fmt.Errorf("拉取截图失败: %v", err)
 	}
@@ -170,7 +173,7 @@ func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 // TapPoint 使用adb模拟点击
 func (adb *Adb) TapPoint(point image.Point) error {
 	// 执行点击命令
-	cmd := exec.Command("adb", "shell", "input", "tap", fmt.Sprintf("%d", point.X), fmt.Sprintf("%d", point.Y))
+	cmd := createHiddenCommand("adb", "shell", "input", "tap", fmt.Sprintf("%d", point.X), fmt.Sprintf("%d", point.Y))
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -187,7 +190,7 @@ func (adb *Adb) TapPoint(point image.Point) error {
 //	endX string 结束X坐标
 //	endY string 结束Y坐标
 func (adb *Adb) Swipe(beginX, beginY, endX, endY string) {
-	cmd := exec.Command("adb", "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
+	cmd := createHiddenCommand("adb", "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
 	logStr := fmt.Sprintf("adb shell input swipe %s %s %s %s 1000", beginX, beginY, endX, endY)
 	if err := cmd.Run(); err != nil {
 		adb.log.SendLog("滑动失败 " + logStr)
@@ -212,7 +215,7 @@ func (adb *Adb) swipeTask(up bool) {
 	if up {
 		str = "上拉"
 	}
-	cmd := exec.Command("adb", "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
+	cmd := createHiddenCommand("adb", "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
 	logStr := fmt.Sprintf("adb shell input swipe %s %s %s %s 1000", beginX, beginY, endX, endY)
 	if err := cmd.Run(); err != nil {
 		adb.log.SendLog(str + "任务栏失败 " + logStr)
@@ -251,4 +254,18 @@ func (adb *Adb) SwipePackageDown(num int) {
 	for i := 0; i < num; i++ {
 		adb.Swipe("910", "400", "910", "600")
 	}
+}
+
+// createHiddenCommand 创建一个在Windows下不显示命令行窗口的命令
+func createHiddenCommand(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	// 仅在Windows系统下设置隐藏窗口属性
+	if runtime.GOOS == "windows" {
+		// 0x08000000 是 CREATE_NO_WINDOW 标志
+		cmd.SysProcAttr = &windows.SysProcAttr{
+			HideWindow:    true,
+			CreationFlags: 0x08000000,
+		}
+	}
+	return cmd
 }

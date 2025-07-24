@@ -7,7 +7,7 @@ import {ElMessage} from "element-plus";
 import {EventsOn} from "../../wailsjs/runtime";
 
 const form = reactive({
-  ip: '100.94.171.85',
+  ip: 'localhost',
   port: '16384',
   baoTu: false,
   waBaoTu: false,

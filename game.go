@@ -6,10 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"gocv.io/x/gocv"
 	"image"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"gocv.io/x/gocv"
 )
 
 type Game struct {
@@ -116,7 +117,7 @@ func (g *Game) TestButton() {
 	//g.monitorZhuogui()
 	//_ = g.adb.TapPoint(LeftArrow)
 	g.log.SendLog("测试按钮")
-	g.ActiveTaskButton()
+	g.OpenPackage()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -326,9 +327,10 @@ func (g *Game) OpenPackage() error {
 		}
 		// 整理背包
 		if bl, point := g.HasImage("package-tidy"); bl {
-			g.log.SendLog("未找到整理背包按钮")
-		} else {
+			g.log.SendLog("已找到整理背包按钮")
 			_ = g.adb.TapPoint(point)
+		} else {
+			g.log.SendLog("未找到整理背包按钮")
 		}
 		return nil
 	} else {
@@ -459,10 +461,8 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 		switch taskName {
 		case "宝图任务":
 			BaoTuTask = true
-			break
 		case "师门任务":
 			ShimenTask = true
-			break
 		}
 		return nil
 	}
@@ -470,7 +470,7 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 	if bl {
 		g.log.SendLog("已找到" + taskName + "任务,开始完成")
 		point.X += 300
-		err = g.adb.TapPoint(point)
+		_ = g.adb.TapPoint(point)
 	} else {
 		g.log.SendLog("未找到" + taskName + "任务,任务结束")
 		return fmt.Errorf(taskName + "任务未找到")
@@ -512,21 +512,13 @@ func (g *Game) StartShimenTask() error {
 
 func (g *Game) monitorShiMenTask() {
 	//开始监控师门任务完成进度
-	check := 0
 	for !ShimenTask {
-		if bl, point := g.HasImage("shimen-task-flag"); bl {
-			check += 1
-			if check >= 3 {
-				g.log.SendLog("师门任务已完成")
-				ShimenTask = true
-			}
-			g.log.SendLog(fmt.Sprintf("第%d次确认，未找到领取的师门任务，等待10秒再检查", check))
-			time.Sleep(10 * time.Second)
+		if bl, _ := g.HasImage("shimen-finished"); bl {
+			g.log.SendLog("师门任务已完成")
+			_ = g.adb.TapPoint(image.Point{X: 640, Y: 555})
+			break
 		} else {
-			g.log.SendLog("找到未完成师门任务，重置确认次数")
-			check = 0
-			_ = g.adb.TapPoint(point)
-			g.log.SendLog("休息10s...")
+			g.log.SendLog("师门任务未完成...休息10s...")
 			time.Sleep(10 * time.Second)
 		}
 	}
@@ -626,7 +618,7 @@ func (g *Game) StartWaBaoTuTask() error {
 			g.log.SendLog("挖宝任务已完成")
 			break
 		}
-		if index > 5 {
+		if index > 2 {
 			g.log.SendLog(fmt.Sprintf("已尝试%d次,没有使用宝图按钮,重新打开背包检查是否有宝图", index))
 			break
 		}
