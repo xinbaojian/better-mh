@@ -26,49 +26,6 @@ var YunBiaoTask = false
 
 var GlobalFlag = true
 
-var MapPoint = image.Point{
-	X: 40,
-	Y: 40,
-}
-
-var MapChangAn = image.Point{X: 600, Y: 400}
-
-var MapDetail = image.Point{X: 145, Y: 65}
-
-// MapZhongKui 钟馗坐标
-var MapZhongKui = image.Point{X: 390, Y: 410}
-
-// MapDianXiaoEr 店小二坐标
-var MapDianXiaoEr = image.Point{X: 785, Y: 380}
-
-// MapZhengBiaoTou ß郑镖头坐标
-var MapZhengBiaoTou = image.Point{X: 280, Y: 425}
-
-var RightArrow = image.Point{
-	X: 33,
-	Y: 54,
-}
-
-var LeftArrow = image.Point{
-	X: 430,
-	Y: 53,
-}
-
-var LeftTeamIcon = image.Point{
-	X: 130,
-	Y: 228,
-}
-
-var CloseTeamPoint = image.Point{
-	X: 1105,
-	Y: 44,
-}
-
-var AutoMatchPoint = image.Point{
-	X: 1030,
-	Y: 113,
-}
-
 // Startup 启动初始化
 func (g *Game) Startup(ctx context.Context, adb *adb.Adb, log *logs.Log) {
 	g.ctx = ctx
@@ -83,7 +40,7 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 		g.log.SendLog("请先连接ADB")
 		return
 	}
-	if baoTu {
+	if baoTu && GlobalFlag {
 		if !BaoTuTask {
 			g.log.SendLog("开始打宝图任务")
 			_ = g.StartBaoTuTask()
@@ -91,13 +48,13 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 			g.log.SendLog("打宝图任务已完成")
 		}
 	}
-	if waBaoTu {
+	if waBaoTu && GlobalFlag {
 		if !WaBaoTuTask {
 			g.log.SendLog("开始挖宝图任务")
 			_ = g.StartWaBaoTuTask()
 		}
 	}
-	if shimen {
+	if shimen && GlobalFlag {
 		if !ShimenTask {
 			g.log.SendLog("开始师门任务")
 			_ = g.StartShimenTask()
@@ -105,7 +62,7 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 			g.log.SendLog("师门任务已完成")
 		}
 	}
-	if zhuoGui {
+	if zhuoGui && GlobalFlag {
 		if g.NeedTeamGuiUp() {
 			if err := g.TeamGuiUp(); err != nil {
 				g.log.SendLog("组队捉鬼任务失败...")
@@ -117,7 +74,7 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 			}
 		}
 	}
-	if yunBiao {
+	if yunBiao && GlobalFlag {
 		if !YunBiaoTask {
 			g.log.SendLog("开始运镖...寻找郑镖头...")
 			if err := g.FindZhengBiaoTou(); err != nil {
@@ -144,10 +101,10 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	//g.monitorZhuogui()
-	//_ = g.adb.TapPoint(LeftArrow)
-	g.log.SendLog("测试按钮")
-	_ = g.OpenPackage()
+	bl, _ := g.HasImage("task0")
+	g.log.SendLog(fmt.Sprintf("task0 is %v", bl))
+	bl, _ = g.HasImage("task1")
+	g.log.SendLog(fmt.Sprintf("task1 is %v", bl))
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -247,21 +204,50 @@ func (g *Game) MatchTemplateFullGray(fullGray gocv.Mat, filePath string, thresho
 
 // ActiveTaskButton 激活右侧任务按钮
 func (g *Game) ActiveTaskButton() {
-	if bl, _ := g.HasImage("yao-qing-ru-dui"); bl {
-		g.log.SendLog("激活任务栏")
-		_ = g.adb.TapPoint(image.Point{X: 1100, Y: 140})
-	} else {
-		g.log.SendLog("任务栏已激活")
+	g.log.SendLog("尝试激活任务按钮")
+	fullGray, err := g.adb.CaptureMat()
+	if err != nil {
+		runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
+		return
 	}
+	// 判断任务栏是否折叠
+	hasPackage, _ := g.MatchTemplateFullGray(fullGray, "package", 0.8)
+	leftArrow, point := g.MatchTemplateFullGray(fullGray, "left-arrow", 0.8)
+	g.log.SendLog(fmt.Sprintf("任务栏是否折叠: %v,%v", hasPackage, leftArrow))
+	if hasPackage && leftArrow {
+		g.log.SendLog("任务栏已隐藏,打开任务栏")
+		_ = g.adb.TapPoint(point)
+	} else {
+		bl, _ := g.MatchTemplateFullGray(fullGray, "task1", 0.9)
+		g.log.SendLog(fmt.Sprintf("task1 is: %v", bl))
+		if bl {
+			_ = g.adb.TapPoint(RightTaskTask)
+		}
+	}
+	_ = fullGray.Close()
 }
 
 func (g *Game) ActiveTeamButton() {
-	if bl, _ := g.HasImage("yao-qing-ru-dui"); !bl {
-		g.log.SendLog("激活组队栏")
-		_ = g.adb.TapPoint(image.Point{X: 1120, Y: 140})
-	} else {
-		g.log.SendLog("组队栏已激活")
+	g.log.SendLog("尝试激活队伍按钮")
+	fullGray, err := g.adb.CaptureMat()
+	if err != nil {
+		runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
+		return
 	}
+	// 判断任务栏是否折叠
+	hasPackage, _ := g.MatchTemplateFullGray(fullGray, "package", 0.8)
+	leftArrow, point := g.MatchTemplateFullGray(fullGray, "left-arrow", 0.8)
+	g.log.SendLog(fmt.Sprintf("任务栏是否折叠: %v,%v", hasPackage, leftArrow))
+	if hasPackage && leftArrow {
+		g.log.SendLog("任务栏已隐藏,打开任务栏")
+		_ = g.adb.TapPoint(point)
+	} else {
+		bl, _ := g.MatchTemplateFullGray(fullGray, "team1", 0.8)
+		if !bl {
+			_ = g.adb.TapPoint(RightTaskTeam)
+		}
+	}
+	_ = fullGray.Close()
 }
 
 // HasImage 验证图片是否存在
@@ -407,16 +393,14 @@ func (g *Game) IsTeamDialog() error {
 func (g *Game) CloseDialog() error {
 	g.log.SendLog("正在关闭所有对话框")
 	if g.HasPackage() {
-		g.log.SendLog("判断无各种对话框遮挡，无需关闭...")
 		return nil
 	}
 	const (
-		maxAttempts    = 4
+		maxAttempts    = 6
 		matchThreshold = 0.9
-		templateCount  = 3
+		templateCount  = 6
 	)
 
-	begin := time.Now()
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		fullGray, err := g.adb.CaptureMat()
 		if err != nil {
@@ -446,8 +430,6 @@ func (g *Game) CloseDialog() error {
 	if !g.HasPackage() {
 		g.log.SendLog("还有未识别的弹层！！！！！")
 	}
-	end := time.Now()
-	g.log.SendLog(fmt.Sprintf("已关闭所有对话框,耗时:%v毫秒", end.Sub(begin).Milliseconds()))
 	return nil
 }
 
@@ -945,9 +927,8 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(RightArrow)
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
-				time.Sleep(5 * time.Second)
-				continue
 			}
+			time.Sleep(20 * time.Second)
 			continue
 		} else {
 			_ = g.CloseDialog()
@@ -975,8 +956,8 @@ func (g *Game) monitorZhuogui() bool {
 				g.log.SendLog("没有找到捉鬼任务，重新开始")
 				break
 			}
+			time.Sleep(20 * time.Second)
 		}
-		time.Sleep(10 * time.Second)
 	}
 	return false
 }
@@ -1002,6 +983,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 	// 循环检查是否与钟馗对话中
 	index := 0
 	for {
+		_ = g.CloseDialog()
 		if index > 10 {
 			g.log.SendLog("找钟馗超时了。。。重新开始..")
 			return false
