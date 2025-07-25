@@ -119,6 +119,10 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 	}
 	if yunBiao {
 		if !YunBiaoTask {
+			g.log.SendLog("开始运镖...寻找郑镖头...")
+			if err := g.FindZhengBiaoTou(); err != nil {
+				g.log.SendLog("未找到郑镖头")
+			}
 			if g.StartYunBiao() {
 				g.log.SendLog("运镖进行中....")
 			}
@@ -1082,12 +1086,10 @@ func (g *Game) FindZhengBiaoTou() error {
 }
 
 func (g *Game) StartYunBiao() bool {
-	g.log.SendLog("开始运镖...寻找郑镖头...")
-	if err := g.FindZhengBiaoTou(); err != nil {
-		g.log.SendLog("未找到郑镖头")
-		return true
-	}
 	index := 0
+	lingQuRenWu := image.Point{X: 1090, Y: 400}
+	renWuConfirm := image.Point{X: 750, Y: 420}
+	cancelConfirm := image.Point{X: 530, Y: 435}
 	for {
 		if index >= 3 {
 			g.log.SendLog("寻找郑镖头超时...")
@@ -1096,8 +1098,14 @@ func (g *Game) StartYunBiao() bool {
 		g.log.SendLog("寻找郑镖头路上...")
 		if bl, _ := g.HasImage("biao-tou-dui-hua"); bl {
 			g.log.SendLog("已找到郑镖头，领取运镖任务")
-			_ = g.adb.TapPoint(image.Point{X: 1090, Y: 400})
-			_ = g.adb.TapPoint(image.Point{X: 750, Y: 420})
+			_ = g.adb.TapPoint(lingQuRenWu)
+			if bl, _ := g.HasImage("cannot-yun-biao"); bl {
+				g.log.SendLog("活跃度不够，无法运镖!")
+				time.Sleep(2 * time.Second)
+				g.adb.TapPoint(cancelConfirm)
+				return false
+			}
+			_ = g.adb.TapPoint(renWuConfirm)
 			break
 		}
 		index += 1
