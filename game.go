@@ -215,7 +215,7 @@ func (g *Game) ActiveTaskButton() {
 		_ = g.adb.TapPoint(point)
 	} else {
 		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
-		if !bl {
+		if bl {
 			_ = g.adb.TapPoint(RightTaskTask)
 			g.log.SendLog("任务栏已激活")
 		}
