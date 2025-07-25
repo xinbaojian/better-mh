@@ -897,7 +897,10 @@ func (g *Game) monitorZhuogui() bool {
 			} else {
 				g.log.SendLog("重新领取捉鬼任务")
 				if g.ContinueZhuoGui() {
-					g.monitorZhongKuiDuiHua()
+					if g.monitorZhongKuiDuiHua() {
+						time.Sleep(30 * time.Second)
+						return true
+					}
 					return false
 				}
 				// 检查是否有倒计时取消按钮
@@ -933,8 +936,11 @@ func (g *Game) monitorZhuogui() bool {
 			_ = g.CloseDialog()
 			g.log.SendLog("捉鬼战斗结束...")
 			if g.ContinueZhuoGui() {
-				g.monitorZhongKuiDuiHua()
-				break
+				if g.monitorZhongKuiDuiHua() {
+					time.Sleep(30 * time.Second)
+				} else {
+					return false
+				}
 			}
 			if g.monitorTeamNumber() {
 				g.log.SendLog("队伍人数不足，重新开始")
