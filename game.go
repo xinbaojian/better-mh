@@ -147,7 +147,7 @@ func (g *Game) TestButton() {
 	//g.monitorZhuogui()
 	//_ = g.adb.TapPoint(LeftArrow)
 	g.log.SendLog("测试按钮")
-	g.OpenPackage()
+	_ = g.OpenPackage()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -179,7 +179,7 @@ func (g *Game) MatchTemplate(filePath string, threshold float32) (bool, image.Po
 		_ = tmpl.Close()
 	}(&tmplGray)
 
-	runtime.LogDebugf(g.ctx, "加载 icon 成功，灰度尺寸：Cols:%v; Rows: %v; Channels: %v; Type: %v;", tmplGray.Cols(), tmplGray.Rows(), tmplGray.Channels(), tmplGray.Type)
+	runtime.LogDebugf(g.ctx, "加载 icon 成功，灰度尺寸：Cols:%v; Rows: %v; Channels: %v; Type: %v;", tmplGray.Cols(), tmplGray.Rows(), tmplGray.Channels(), tmplGray.Type())
 
 	fullGray, err := g.adb.CaptureMat()
 	if err != nil {
@@ -214,7 +214,7 @@ func (g *Game) MatchTemplate(filePath string, threshold float32) (bool, image.Po
 }
 
 func (g *Game) MatchTemplateFullGray(fullGray gocv.Mat, filePath string, threshold float32) (bool, image.Point) {
-	tmplGray, err := loadMatFromEmbed(filePath)
+	tmplGray, err := loadMatFromEmbed("images/" + filePath + ".png")
 	if err != nil {
 		runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
 		return false, image.Point{}
@@ -303,12 +303,12 @@ func (g *Game) IsBettle() (bool, error) {
 		_ = full.Close()
 	}(&fullGray)
 	// 天覆阵
-	bl, _ := g.MatchTemplateFullGray(fullGray, "images/tian-fu-zhen.png", 0.8)
+	bl, _ := g.MatchTemplateFullGray(fullGray, "tian-fu-zhen", 0.8)
 	if bl {
 		return true, nil
 	}
 	// 地载阵
-	bl, _ = g.MatchTemplateFullGray(fullGray, "images/di-zai-zhen.png", 0.8)
+	bl, _ = g.MatchTemplateFullGray(fullGray, "di-zai-zhen", 0.8)
 	if bl {
 		return true, nil
 	}
@@ -425,7 +425,7 @@ func (g *Game) CloseDialog() error {
 		}
 		index := 0
 		for idx := 0; idx < templateCount; idx++ {
-			templatePath := fmt.Sprintf("images/close%d.png", idx)
+			templatePath := fmt.Sprintf("close%d", idx)
 			bl, point := g.MatchTemplateFullGray(fullGray, templatePath, matchThreshold)
 			if bl {
 				err := g.adb.TapPoint(point)
@@ -489,7 +489,7 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 	}(&fullGray)
 
 	// 判断任务是否已完成
-	bl, point := g.MatchTemplateFullGray(fullGray, "images/"+imageName+"-finished.png", 0.9)
+	bl, point := g.MatchTemplateFullGray(fullGray, imageName+"-finished", 0.9)
 	if bl {
 		g.log.SendLog(taskName + "已完成")
 		switch taskName {
@@ -500,7 +500,7 @@ func (g *Game) StartHuoDongTask(taskName, imageName string) error {
 		}
 		return nil
 	}
-	bl, point = g.MatchTemplateFullGray(fullGray, "images/"+imageName+"-icon.png", 0.8)
+	bl, point = g.MatchTemplateFullGray(fullGray, imageName+"-icon", 0.8)
 	if bl {
 		g.log.SendLog("已找到" + taskName + "任务,开始完成")
 		point.X += 300
@@ -547,13 +547,16 @@ func (g *Game) StartShimenTask() error {
 func (g *Game) monitorShiMenTask() {
 	//开始监控师门任务完成进度
 	for !ShimenTask {
+		if g.CheckStop() {
+			return
+		}
 		if bl, _ := g.HasImage("shimen-finished"); bl {
 			g.log.SendLog("师门任务已完成")
 			_ = g.adb.TapPoint(image.Point{X: 640, Y: 555})
 			break
 		} else {
 			g.log.SendLog("师门任务未完成...休息10s...")
-			time.Sleep(10 * time.Second)
+			time.Sleep(30 * time.Second)
 		}
 	}
 }
@@ -697,16 +700,20 @@ func (g *Game) HasHelper() bool {
 }
 
 func (g *Game) NeedTeamGuiUp() bool {
-	_ = g.CloseDialog()
+
 	if bl, _ := g.HasImage("dong-min-ji"); bl {
 		g.log.SendLog("捉鬼战斗中，无需组队")
 		return false
 	}
+	_ = g.CloseDialog()
 	time.Sleep(1 * time.Second)
+	g.log.SendLog("检查是否已领取捉鬼任务")
 	g.ActiveTaskButton()
 	if bl, _ := g.HasImage("zhuo-na"); bl {
 		g.log.SendLog("已领取捉鬼任务，无需组队")
 		return false
+	} else {
+		g.log.SendLog("未领取捉鬼任务")
 	}
 	return true
 }
@@ -813,6 +820,11 @@ func (g *Game) TeamGuiUp() error {
 	if err := g.FindZhongKui(); err != nil {
 		return err
 	}
+	if !g.monitorZhongKuiDuiHua() {
+		if err := g.FindZhongKui(); err == nil {
+			g.monitorZhongKuiDuiHua()
+		}
+	}
 	return nil
 }
 
@@ -899,7 +911,21 @@ func (g *Game) monitorZhuogui() bool {
 			g.checkLiXian()
 			_ = g.FindZhongKui()
 		} else {
-			g.log.SendLog("成功领取捉鬼任务")
+			if bl, _ := g.HasImage("zhuo-na"); bl {
+				g.log.SendLog("已领取捉鬼任务")
+			} else {
+				g.log.SendLog("重新领取捉鬼任务")
+				if g.ContinueZhuoGui() {
+					g.monitorZhongKuiDuiHua()
+					return false
+				}
+				// 检查是否有倒计时取消按钮
+				g.CheckAndClickTimingCancel()
+				if err := g.FindZhongKui(); err == nil {
+					g.monitorZhongKuiDuiHua()
+					return false
+				}
+			}
 			// 捉拿鬼任务
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
 			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
@@ -919,16 +945,14 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(RightArrow)
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
-				time.Sleep(15 * time.Second)
+				time.Sleep(5 * time.Second)
 				continue
 			}
-			time.Sleep(10 * time.Second)
+			continue
 		} else {
+			_ = g.CloseDialog()
 			g.log.SendLog("捉鬼战斗结束...")
-			if bl, _ := g.HasImage("continue-zhuogui"); bl {
-				g.log.SendLog("已捉完一轮鬼，是否继续？")
-				_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
-				time.Sleep(8 * time.Second)
+			if g.ContinueZhuoGui() {
 				g.monitorZhongKuiDuiHua()
 				break
 			}
@@ -952,6 +976,17 @@ func (g *Game) monitorZhuogui() bool {
 				break
 			}
 		}
+		time.Sleep(10 * time.Second)
+	}
+	return false
+}
+
+func (g *Game) ContinueZhuoGui() bool {
+	if bl, _ := g.HasImage("continue-zhuogui"); bl {
+		g.log.SendLog("已捉完一轮鬼，是否继续？")
+		_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
+		time.Sleep(8 * time.Second)
+		return true
 	}
 	return false
 }
@@ -981,6 +1016,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			if err := g.adb.TapPoint(point); err != nil {
 				g.log.SendLog("点击捉鬼任务按钮失败")
 			}
+			g.ActiveTaskButton()
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				g.log.SendLog("点击捉鬼追踪")
 				_ = g.adb.TapPoint(point)
@@ -1005,18 +1041,18 @@ func (g *Game) HasLiXian() bool {
 		_ = full.Close()
 	}(&fullGray)
 
-	bl, _ := g.MatchTemplateFullGray(fullGray, "images/yang-jian.png", 0.9)
+	bl, _ := g.MatchTemplateFullGray(fullGray, "yang-jian", 0.9)
 	if bl {
 		return true
 	}
-	bl, _ = g.MatchTemplateFullGray(fullGray, "images/xing-lin-xian.png", 0.9)
+	bl, _ = g.MatchTemplateFullGray(fullGray, "xing-lin-xian", 0.9)
 	if bl {
 		return true
 	}
-	if bl, _ := g.MatchTemplateFullGray(fullGray, "images/dadangjia.png", 0.8); bl {
+	if bl, _ := g.MatchTemplateFullGray(fullGray, "dadangjia", 0.8); bl {
 		return true
 	}
-	if bl, _ := g.MatchTemplateFullGray(fullGray, "images/sunwukong.png", 0.8); bl {
+	if bl, _ := g.MatchTemplateFullGray(fullGray, "sunwukong", 0.8); bl {
 		return true
 	}
 	return false
@@ -1027,7 +1063,8 @@ func (g *Game) CloseTeamDialog() error {
 }
 
 func (g *Game) checkLiXian() {
-	for i := 0; i < 4; i++ {
+	index := 0
+	for index < 5 {
 		if bl, point := g.HasImage("li-xian"); bl {
 			point.Y = point.Y - 50
 			_ = g.adb.TapPoint(point)
@@ -1035,6 +1072,7 @@ func (g *Game) checkLiXian() {
 			if bl, point := g.HasImage("kick-out-team"); bl {
 				_ = g.adb.TapPoint(point)
 				g.log.SendLog("请离离线角色成功")
+				index += 1
 			} else {
 				g.log.SendLog("请离离线角色失败")
 			}
@@ -1049,8 +1087,8 @@ func (g *Game) checkLiXian() {
 		}
 	}
 	_ = g.CloseTeamDialog()
-	if bl, point := g.HasImage("left-arrow"); bl {
-		_ = g.adb.TapPoint(point)
+	if bl, _ := g.IsBettle(); bl {
+		_ = g.adb.TapPoint(image.Point{X: 434, Y: 54})
 	}
 }
 
@@ -1081,22 +1119,34 @@ func (g *Game) FindZhengBiaoTou() error {
 
 func (g *Game) StartYunBiao() bool {
 	index := 0
-	lingQuRenWu := image.Point{X: 1090, Y: 400}
 	renWuConfirm := image.Point{X: 750, Y: 420}
 	cancelConfirm := image.Point{X: 530, Y: 435}
 	for {
 		if index >= 3 {
 			g.log.SendLog("寻找郑镖头超时...")
-			return true
+			return false
 		}
 		g.log.SendLog("寻找郑镖头路上...")
-		if bl, _ := g.HasImage("biao-tou-dui-hua"); bl {
+		fullGray, err := g.adb.CaptureMat()
+		if err != nil {
+			runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
+			return false
+		}
+		if bl, _ := g.MatchTemplateFullGray(fullGray, "biao-tou-dui-hua", 0.8); bl {
 			g.log.SendLog("已找到郑镖头，领取运镖任务")
-			_ = g.adb.TapPoint(lingQuRenWu)
+			if bl, point := g.MatchTemplateFullGray(fullGray, "yun-biao-pu-tong", 0.8); bl {
+				_ = g.adb.TapPoint(point)
+				_ = fullGray.Close()
+			}
+			// 验证是否进入运镖
+			if bl, _ := g.HasImage("yun-biao-ing"); !bl {
+				g.log.SendLog("未进入运镖界面，运镖已结束")
+				return false
+			}
 			if bl, _ := g.HasImage("cannot-yun-biao"); bl {
 				g.log.SendLog("活跃度不够，无法运镖!")
 				time.Sleep(2 * time.Second)
-				g.adb.TapPoint(cancelConfirm)
+				_ = g.adb.TapPoint(cancelConfirm)
 				return false
 			}
 			_ = g.adb.TapPoint(renWuConfirm)
@@ -1106,34 +1156,45 @@ func (g *Game) StartYunBiao() bool {
 		time.Sleep(5 * time.Second)
 	}
 	// 判断是否领取成功
+	index = 1
 	for {
+		if index >= 3 {
+			return false
+		}
 		if g.CheckStop() {
-			g.log.SendLog("主动取消运镖任务")
-			return true
+			return false
 		}
 		if bl, _ := g.IsBettle(); bl {
 			g.log.SendLog("糟糕，碰到劫镖的了。。。战斗吧！")
+			time.Sleep(20 * time.Second)
 		} else {
 			fullGray, err := g.adb.CaptureMat()
 			if err != nil {
 				runtime.LogErrorf(g.ctx, fmt.Sprintf("加载图标失败: %v", err))
 			}
-			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/yun-biao-ing.png", 0.8); bl {
+			if bl, _ := g.MatchTemplateFullGray(fullGray, "yun-biao-ing", 0.8); bl {
 				g.log.SendLog("运镖中....")
 				time.Sleep(20 * time.Second)
+				continue
 			}
-			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/biao-tou-dui-hua.png", 0.8); bl {
+			if bl, _ := g.MatchTemplateFullGray(fullGray, "biao-tou-dui-hua", 0.8); bl {
 				g.log.SendLog("已找到郑镖头，领取运镖任务")
-				_ = g.adb.TapPoint(image.Point{X: 1090, Y: 400})
-				_ = g.adb.TapPoint(image.Point{X: 750, Y: 420})
+				if bl, point := g.MatchTemplateFullGray(fullGray, "yun-biao-pu-tong", 0.8); bl {
+					_ = g.adb.TapPoint(point)
+					if err := g.adb.TapPoint(renWuConfirm); err == nil {
+						index += 1
+					}
+				}
 				time.Sleep(5 * time.Second)
-			}
-			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/yun-biao-three.png", 0.9); bl {
-				g.log.SendLog("最后一次普通运镖了～～～")
-				break
 			}
 			_ = fullGray.Close()
 		}
 	}
-	return false
+
+}
+
+func (g *Game) CheckAndClickTimingCancel() {
+	if bl, point := g.HasImage("timing-cancel"); bl {
+		_ = g.adb.TapPoint(point)
+	}
 }

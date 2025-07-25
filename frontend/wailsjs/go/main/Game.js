@@ -10,6 +10,10 @@ export function ActiveTeamButton() {
   return window['go']['main']['Game']['ActiveTeamButton']();
 }
 
+export function CheckAndClickTimingCancel() {
+  return window['go']['main']['Game']['CheckAndClickTimingCancel']();
+}
+
 export function CheckStop() {
   return window['go']['main']['Game']['CheckStop']();
 }
@@ -28,6 +32,10 @@ export function CloseLeftArrow() {
 
 export function CloseTeamDialog() {
   return window['go']['main']['Game']['CloseTeamDialog']();
+}
+
+export function ContinueZhuoGui() {
+  return window['go']['main']['Game']['ContinueZhuoGui']();
 }
 
 export function FindXiaoEr() {

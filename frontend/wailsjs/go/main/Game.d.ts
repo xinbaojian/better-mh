@@ -10,6 +10,8 @@ export function ActiveTaskButton():Promise<void>;
 
 export function ActiveTeamButton():Promise<void>;
 
+export function CheckAndClickTimingCancel():Promise<void>;
+
 export function CheckStop():Promise<boolean>;
 
 export function ClickShiYong():Promise<void>;
@@ -19,6 +21,8 @@ export function CloseDialog():Promise<void>;
 export function CloseLeftArrow():Promise<void>;
 
 export function CloseTeamDialog():Promise<void>;
+
+export function ContinueZhuoGui():Promise<boolean>;
 
 export function FindXiaoEr():Promise<void>;
 
