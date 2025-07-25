@@ -697,6 +697,7 @@ func (g *Game) HasHelper() bool {
 }
 
 func (g *Game) NeedTeamGuiUp() bool {
+	_ = g.CloseDialog()
 	if bl, _ := g.HasImage("dong-min-ji"); bl {
 		g.log.SendLog("捉鬼战斗中，无需组队")
 		return false
@@ -798,6 +799,7 @@ func (g *Game) TeamGuiUp() error {
 	}
 	//循环检查是否组满队员
 	for {
+		g.log.SendLog("检查是否组满队员")
 		if g.CheckStop() {
 			break
 		}
@@ -805,6 +807,8 @@ func (g *Game) TeamGuiUp() error {
 			g.log.SendLog("没有找到助战，组满队员")
 			break
 		}
+		g.log.SendLog("有助战，未满员，继续等待")
+		time.Sleep(5 * time.Second)
 	}
 	if err := g.FindZhongKui(); err != nil {
 		return err
@@ -1044,16 +1048,6 @@ func (g *Game) checkLiXian() {
 			break
 		}
 	}
-	// 循环检查队友是否补全
-	for {
-		if g.HasHelper() {
-			g.log.SendLog("队友未补全")
-			time.Sleep(5 * time.Second)
-		} else {
-			g.log.SendLog("队友已补全")
-			break
-		}
-	}
 	_ = g.CloseTeamDialog()
 	if bl, point := g.HasImage("left-arrow"); bl {
 		_ = g.adb.TapPoint(point)
@@ -1134,7 +1128,7 @@ func (g *Game) StartYunBiao() bool {
 				_ = g.adb.TapPoint(image.Point{X: 750, Y: 420})
 				time.Sleep(5 * time.Second)
 			}
-			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/yun-biao-three.png", 0.8); bl {
+			if bl, _ := g.MatchTemplateFullGray(fullGray, "images/yun-biao-three.png", 0.9); bl {
 				g.log.SendLog("最后一次普通运镖了～～～")
 				break
 			}
