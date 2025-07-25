@@ -101,10 +101,7 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	bl, _ := g.HasImage("task0")
-	g.log.SendLog(fmt.Sprintf("task0 is %v", bl))
-	bl, _ = g.HasImage("task1")
-	g.log.SendLog(fmt.Sprintf("task1 is %v", bl))
+	g.ActiveTaskButton()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -213,15 +210,14 @@ func (g *Game) ActiveTaskButton() {
 	// 判断任务栏是否折叠
 	hasPackage, _ := g.MatchTemplateFullGray(fullGray, "package", 0.8)
 	leftArrow, point := g.MatchTemplateFullGray(fullGray, "left-arrow", 0.8)
-	g.log.SendLog(fmt.Sprintf("任务栏是否折叠: %v,%v", hasPackage, leftArrow))
 	if hasPackage && leftArrow {
 		g.log.SendLog("任务栏已隐藏,打开任务栏")
 		_ = g.adb.TapPoint(point)
 	} else {
-		bl, _ := g.MatchTemplateFullGray(fullGray, "task1", 0.9)
-		g.log.SendLog(fmt.Sprintf("task1 is: %v", bl))
-		if bl {
+		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
+		if !bl {
 			_ = g.adb.TapPoint(RightTaskTask)
+			g.log.SendLog("任务栏已激活")
 		}
 	}
 	_ = fullGray.Close()
@@ -242,10 +238,8 @@ func (g *Game) ActiveTeamButton() {
 		g.log.SendLog("任务栏已隐藏,打开任务栏")
 		_ = g.adb.TapPoint(point)
 	} else {
-		bl, _ := g.MatchTemplateFullGray(fullGray, "team1", 0.8)
-		if !bl {
-			_ = g.adb.TapPoint(RightTaskTeam)
-		}
+		_ = g.adb.TapPoint(RightTaskTeam)
+		g.log.SendLog("队伍栏已激活")
 	}
 	_ = fullGray.Close()
 }
