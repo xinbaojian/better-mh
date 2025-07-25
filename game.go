@@ -871,6 +871,7 @@ func (g *Game) FindXiaoEr() error {
 
 func (g *Game) monitorZhuogui() bool {
 	g.log.SendLog("开始监控捉鬼进程...")
+	g.ActiveTaskButton()
 	if g.CheckStop() {
 		g.log.SendLog("手动终止任务...")
 		return true
@@ -977,7 +978,6 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 	// 循环检查是否与钟馗对话中
 	index := 0
 	for {
-		_ = g.CloseDialog()
 		if index > 10 {
 			g.log.SendLog("找钟馗超时了。。。重新开始..")
 			return false
