@@ -282,8 +282,12 @@ func (g *Game) IsBettle() (bool, error) {
 	defer func(full *gocv.Mat) {
 		_ = full.Close()
 	}(&fullGray)
+	bl, point := g.MatchTemplateFullGray(fullGray, "tian-fu-zhen", 0.8)
+	if bl {
+		_ = g.adb.TapPoint(point)
+	}
 	// 天覆阵
-	bl, _ := g.MatchTemplateFullGray(fullGray, "tian-fu-zhen", 0.8)
+	bl, _ = g.MatchTemplateFullGray(fullGray, "tian-fu-zhen", 0.8)
 	if bl {
 		return true, nil
 	}
