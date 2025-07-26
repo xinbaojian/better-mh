@@ -215,7 +215,7 @@ func (g *Game) ActiveTaskButton() {
 		_ = g.adb.TapPoint(point)
 	} else {
 		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
-		if bl {
+		if !bl {
 			_ = g.adb.TapPoint(RightTaskTask)
 			g.log.SendLog("任务栏已激活")
 		}
@@ -282,7 +282,7 @@ func (g *Game) IsBettle() (bool, error) {
 	defer func(full *gocv.Mat) {
 		_ = full.Close()
 	}(&fullGray)
-	bl, point := g.MatchTemplateFullGray(fullGray, "right-arrow", 0.8)
+	bl, point := g.MatchTemplateFullGray(fullGray, "left-arrow", 0.8)
 	if bl {
 		_ = g.adb.TapPoint(point)
 	}
@@ -420,13 +420,10 @@ func (g *Game) CloseDialog() error {
 			}
 			index += 1
 		}
-		if index >= 3 {
+		if index >= templateCount {
 			break
 		}
 		_ = fullGray.Close() // 手动释放资源
-	}
-	if !g.HasPackage() {
-		g.log.SendLog("还有未识别的弹层！！！！！")
 	}
 	return nil
 }
@@ -930,7 +927,7 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
 			}
-			time.Sleep(20 * time.Second)
+			time.Sleep(10 * time.Second)
 			continue
 		} else {
 			_ = g.CloseDialog()
@@ -971,7 +968,7 @@ func (g *Game) ContinueZhuoGui() bool {
 	if bl, _ := g.HasImage("continue-zhuogui"); bl {
 		g.log.SendLog("已捉完一轮鬼，是否继续？")
 		_ = g.adb.TapPoint(image.Point{X: 745, Y: 420})
-		time.Sleep(8 * time.Second)
+		time.Sleep(2 * time.Second)
 		return true
 	}
 	return false
@@ -1009,6 +1006,14 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 				_ = g.adb.TapPoint(point)
 			}
 			break
+		} else {
+			g.ActiveTaskButton()
+			if bl, point := g.HasImage("zhuo-na"); bl {
+				g.log.SendLog("点击捉鬼追踪")
+				_ = g.adb.TapPoint(point)
+				_ = g.adb.TapPoint(point)
+				break
+			}
 		}
 		time.Sleep(5 * time.Second)
 		index += 1
@@ -1027,11 +1032,11 @@ func (g *Game) HasLiXian() bool {
 		_ = full.Close()
 	}(&fullGray)
 
-	bl, _ := g.MatchTemplateFullGray(fullGray, "yang-jian", 0.9)
+	bl, _ := g.MatchTemplateFullGray(fullGray, "yang-jian", 0.8)
 	if bl {
 		return true
 	}
-	bl, _ = g.MatchTemplateFullGray(fullGray, "xing-lin-xian", 0.9)
+	bl, _ = g.MatchTemplateFullGray(fullGray, "xing-lin-xian", 0.8)
 	if bl {
 		return true
 	}
@@ -1041,6 +1046,7 @@ func (g *Game) HasLiXian() bool {
 	if bl, _ := g.MatchTemplateFullGray(fullGray, "sunwukong", 0.8); bl {
 		return true
 	}
+	g.log.SendLog("没有离线角色")
 	return false
 }
 
@@ -1073,13 +1079,11 @@ func (g *Game) checkLiXian() {
 		}
 	}
 	_ = g.CloseTeamDialog()
-	if bl, _ := g.IsBettle(); bl {
-		_ = g.adb.TapPoint(image.Point{X: 434, Y: 54})
-	}
+	g.CloseLeftArrow()
 }
 
 func (g *Game) CloseLeftArrow() {
-	if bl, _ := g.IsBettle(); bl {
+	if bl, _ := g.HasImage("left-arrow"); bl {
 		_ = g.adb.TapPoint(LeftArrow)
 	}
 }
