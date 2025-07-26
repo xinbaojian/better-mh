@@ -101,7 +101,7 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	g.ActiveTaskButton()
+	g.HasLiXian()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -1034,16 +1034,20 @@ func (g *Game) HasLiXian() bool {
 
 	bl, _ := g.MatchTemplateFullGray(fullGray, "yang-jian", 0.8)
 	if bl {
+		g.log.SendLog("助战杨戬上场了")
 		return true
 	}
 	bl, _ = g.MatchTemplateFullGray(fullGray, "xing-lin-xian", 0.8)
 	if bl {
+		g.log.SendLog("助战星杏林仙上场了")
 		return true
 	}
 	if bl, _ := g.MatchTemplateFullGray(fullGray, "dadangjia", 0.8); bl {
+		g.log.SendLog("助战大当家上场了")
 		return true
 	}
 	if bl, _ := g.MatchTemplateFullGray(fullGray, "sunwukong", 0.8); bl {
+		g.log.SendLog("助战孙悟空上场了")
 		return true
 	}
 	g.log.SendLog("没有离线角色")
@@ -1131,7 +1135,9 @@ func (g *Game) StartYunBiao() bool {
 			// 验证是否进入运镖
 			if bl, _ := g.HasImage("yun-biao-ing"); !bl {
 				g.log.SendLog("未进入运镖界面，运镖已结束")
-				return false
+				_ = g.FindZhengBiaoTou()
+				index += 1
+				continue
 			}
 			if bl, _ := g.HasImage("cannot-yun-biao"); bl {
 				g.log.SendLog("活跃度不够，无法运镖!")
