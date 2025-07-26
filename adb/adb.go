@@ -152,18 +152,21 @@ func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 	// 在设备上执行截图命令
 	cmd := createHiddenCommand("adb", "shell", "screencap", "-p", "/sdcard/screen.png")
 	if err := cmd.Run(); err != nil {
+		adb.log.SendLog("截图失败" + err.Error())
 		return gocv.Mat{}, fmt.Errorf("截图失败: %v", err)
 	}
 
 	// 从设备拉取截图文件
 	cmd = createHiddenCommand("adb", "pull", "/sdcard/screen.png", "screen.png")
 	if err := cmd.Run(); err != nil {
+		adb.log.SendLog("拉取截图失败" + err.Error())
 		return gocv.Mat{}, fmt.Errorf("拉取截图失败: %v", err)
 	}
 
 	// 读取截图文件
 	img := gocv.IMRead("screen.png", gocv.IMReadGrayScale)
 	if img.Empty() {
+		adb.log.SendLog("读取图像失败")
 		return gocv.Mat{}, fmt.Errorf("读取图像失败")
 	}
 	return img, nil
