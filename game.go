@@ -877,7 +877,6 @@ func (g *Game) monitorZhuogui() bool {
 	g.log.SendLog("开始监控捉鬼进程...")
 	g.ActiveTaskButton()
 	if g.CheckStop() {
-		g.log.SendLog("手动终止任务...")
 		return true
 	}
 
@@ -892,14 +891,15 @@ func (g *Game) monitorZhuogui() bool {
 			g.checkLiXian()
 			_ = g.FindZhongKui()
 		} else {
-			if bl, _ := g.HasImage("zhuo-na"); bl {
-				g.log.SendLog("已领取捉鬼任务")
+			if bl, point := g.HasImage("zhuo-na"); bl {
+				g.log.SendLog("已领取捉鬼任务，点击追踪")
+				_ = g.adb.TapPoint(point)
 			} else {
 				g.log.SendLog("重新领取捉鬼任务")
 				if g.ContinueZhuoGui() {
 					if g.monitorZhongKuiDuiHua() {
 						time.Sleep(30 * time.Second)
-						return true
+						return false
 					}
 					return false
 				}
@@ -910,9 +910,6 @@ func (g *Game) monitorZhuogui() bool {
 					return false
 				}
 			}
-			// 捉拿鬼任务
-			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
-			_ = g.adb.TapPoint(image.Point{X: 1130, Y: 220})
 			time.Sleep(5 * time.Second)
 		}
 	}
@@ -935,16 +932,20 @@ func (g *Game) monitorZhuogui() bool {
 		} else {
 			_ = g.CloseDialog()
 			g.log.SendLog("捉鬼战斗结束...")
+			time.Sleep(10 * time.Second)
+			if bl, _ := g.IsBettle(); bl {
+				continue
+			}
 			if g.ContinueZhuoGui() {
 				if g.monitorZhongKuiDuiHua() {
-					time.Sleep(30 * time.Second)
+					time.Sleep(2 * time.Second)
 				} else {
 					return false
 				}
 			}
 			if g.monitorTeamNumber() {
 				g.log.SendLog("队伍人数不足，重新开始")
-				time.Sleep(30 * time.Second)
+				time.Sleep(2 * time.Second)
 				if bl, point := g.HasImage("team-tiao-cheng-cancel"); bl {
 					g.log.SendLog("点击取消")
 					_ = g.adb.TapPoint(point)
@@ -957,11 +958,11 @@ func (g *Game) monitorZhuogui() bool {
 			} else {
 				index += 1
 			}
-			if index > 2 {
+			if index > 3 {
 				g.log.SendLog("没有找到捉鬼任务，重新开始")
 				break
 			}
-			time.Sleep(20 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 	}
 	return false
@@ -1002,13 +1003,6 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			if err := g.adb.TapPoint(point); err != nil {
 				g.log.SendLog("点击捉鬼任务按钮失败")
 			}
-			g.ActiveTaskButton()
-			if bl, point := g.HasImage("zhuo-na"); bl {
-				g.log.SendLog("点击捉鬼追踪")
-				_ = g.adb.TapPoint(point)
-				_ = g.adb.TapPoint(point)
-			}
-			break
 		} else {
 			g.ActiveTaskButton()
 			if bl, point := g.HasImage("zhuo-na"); bl {
@@ -1018,7 +1012,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 				break
 			}
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
 		index += 1
 	}
 	return true
@@ -1090,7 +1084,7 @@ func (g *Game) checkLiXian() {
 }
 
 func (g *Game) CloseLeftArrow() {
-	if bl, _ := g.HasImage("left-arrow"); bl {
+	if bl, _ := g.HasImage("left-panel"); bl {
 		_ = g.adb.TapPoint(LeftArrow)
 	}
 }
