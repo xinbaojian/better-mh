@@ -394,9 +394,9 @@ func (g *Game) CloseDialog() error {
 		return nil
 	}
 	const (
-		maxAttempts    = 6
+		maxAttempts    = 7
 		matchThreshold = 0.9
-		templateCount  = 6
+		templateCount  = 7
 	)
 
 	for attempt := 0; attempt < maxAttempts; attempt++ {
@@ -997,6 +997,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			g.log.SendLog("手动停止捉鬼任务")
 			return true
 		}
+		g.ActiveTaskButton()
 		g.log.SendLog("去找钟馗领取任务")
 		if bl, point := g.HasImage("zhuogui-task"); bl {
 			g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
@@ -1004,7 +1005,6 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 				g.log.SendLog("点击捉鬼任务按钮失败")
 			}
 		} else {
-			g.ActiveTaskButton()
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				g.log.SendLog("点击捉鬼追踪")
 				_ = g.adb.TapPoint(point)
