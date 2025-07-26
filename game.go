@@ -101,7 +101,7 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	g.HasLiXian()
+	_ = g.CloseDialog()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -508,6 +508,7 @@ func (g *Game) StartShimenTask() error {
 		g.log.SendLog("未找到师门任务")
 		g.monitorShiMenTask()
 	}
+	time.Sleep(time.Second * 2)
 	bl, point = g.MatchTemplate("images/shimen-goto-task.png", 0.8)
 	if bl {
 		if err := g.adb.TapPoint(point); err != nil {
@@ -530,6 +531,7 @@ func (g *Game) monitorShiMenTask() {
 		if bl, _ := g.HasImage("shimen-finished"); bl {
 			g.log.SendLog("师门任务已完成")
 			_ = g.adb.TapPoint(image.Point{X: 640, Y: 555})
+			_ = g.CloseDialog()
 			break
 		} else {
 			g.log.SendLog("师门任务未完成...休息10s...")
@@ -841,6 +843,7 @@ func (g *Game) GotoChangAn() error {
 		g.log.SendLog("点击地图失败")
 		return err
 	}
+	time.Sleep(1 * time.Second)
 	if err := g.adb.TapPoint(MapChangAn); err != nil {
 		g.log.SendLog("去长安失败")
 		return err
@@ -1130,6 +1133,13 @@ func (g *Game) StartYunBiao() bool {
 			g.log.SendLog("已找到郑镖头，领取运镖任务")
 			if bl, point := g.MatchTemplateFullGray(fullGray, "yun-biao-pu-tong", 0.8); bl {
 				_ = g.adb.TapPoint(point)
+				time.Sleep(2 * time.Second)
+				if bl, _ := g.HasImage("yun-biao-jiao-ya-jin"); bl {
+					time.Sleep(2 * time.Second)
+					if bl, point = g.HasImage("yun-biao-ya-jin-confirm"); bl {
+						_ = g.adb.TapPoint(point)
+					}
+				}
 				_ = fullGray.Close()
 			}
 			// 验证是否进入运镖
