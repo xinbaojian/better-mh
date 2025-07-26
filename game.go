@@ -1000,6 +1000,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			return true
 		}
 		g.ActiveTaskButton()
+		time.Sleep(2 * time.Second)
 		g.log.SendLog("去找钟馗领取任务")
 		if bl, point := g.HasImage("zhuogui-task"); bl {
 			g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
