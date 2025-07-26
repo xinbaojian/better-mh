@@ -216,8 +216,10 @@ func (g *Game) ActiveTaskButton() {
 	} else {
 		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
 		if !bl {
-			_ = g.adb.TapPoint(RightTaskTask)
-			g.log.SendLog("任务栏已激活")
+			if bl, _ := g.IsBettle(); bl {
+				_ = g.adb.TapPoint(RightTaskTask)
+				g.log.SendLog("任务栏已激活")
+			}
 		}
 	}
 	_ = fullGray.Close()
@@ -1047,7 +1049,6 @@ func (g *Game) HasLiXian() bool {
 		g.log.SendLog("助战孙悟空上场了")
 		return true
 	}
-	g.log.SendLog("没有离线角色")
 	return false
 }
 
