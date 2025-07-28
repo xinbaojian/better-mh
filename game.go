@@ -101,7 +101,7 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	_ = g.CloseDialog()
+	g.ActiveTaskButton()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -201,6 +201,7 @@ func (g *Game) MatchTemplateFullGray(fullGray gocv.Mat, filePath string, thresho
 
 // ActiveTaskButton 激活右侧任务按钮
 func (g *Game) ActiveTaskButton() {
+	_ = g.CloseDialog()
 	g.log.SendLog("尝试激活任务按钮")
 	fullGray, err := g.adb.CaptureMat()
 	if err != nil {
@@ -216,7 +217,7 @@ func (g *Game) ActiveTaskButton() {
 	} else {
 		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
 		if !bl {
-			if bl, _ := g.IsBettle(); bl {
+			if bl, _ := g.IsBettle(); !bl {
 				_ = g.adb.TapPoint(RightTaskTask)
 				g.log.SendLog("任务栏已激活")
 			}
