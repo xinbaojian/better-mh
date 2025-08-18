@@ -211,17 +211,21 @@ func (g *Game) ActiveTaskButton() {
 	// 判断任务栏是否折叠
 	hasPackage, _ := g.MatchTemplateFullGray(fullGray, "package", 0.8)
 	leftArrow, point := g.MatchTemplateFullGray(fullGray, "left-arrow", 0.8)
-	if hasPackage && leftArrow {
-		g.log.SendLog("任务栏已隐藏,打开任务栏")
-		_ = g.adb.TapPoint(point)
-	} else {
-		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
-		if !bl {
-			if bl, _ := g.IsBettle(); !bl {
-				_ = g.adb.TapPoint(RightTaskTask)
-				g.log.SendLog("任务栏已激活")
+	if hasPackage {
+		if leftArrow {
+			g.log.SendLog("任务栏已隐藏,打开任务栏")
+			_ = g.adb.TapPoint(point)
+		} else {
+			bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
+			if !bl {
+				if bl, _ := g.IsBettle(); !bl {
+					_ = g.adb.TapPoint(RightTaskTask)
+					g.log.SendLog("任务栏已激活")
+				}
 			}
 		}
+	} else {
+		g.log.SendLog("未找到包裹图标")
 	}
 	_ = fullGray.Close()
 }
@@ -884,36 +888,38 @@ func (g *Game) monitorZhuogui() bool {
 	}
 
 	if g.NeedTeamGuiUp() {
-		// 判断是否成功领取捉鬼任务
-		if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
-			g.log.SendLog("领取捉鬼任务失败")
-			_ = g.adb.TapPoint(image.Point{X: 640, Y: 655})
-			if err := g.OpenTeamDialog(); err != nil {
-				g.log.SendLog("打开队伍界面失败")
-			}
-			g.checkLiXian()
-			_ = g.FindZhongKui()
-		} else {
-			if bl, point := g.HasImage("zhuo-na"); bl {
-				g.log.SendLog("已领取捉鬼任务，点击追踪")
-				_ = g.adb.TapPoint(point)
+		if bl, _ := g.IsBettle(); !bl {
+			// 判断是否成功领取捉鬼任务
+			if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
+				g.log.SendLog("领取捉鬼任务失败")
+				_ = g.adb.TapPoint(image.Point{X: 640, Y: 655})
+				if err := g.OpenTeamDialog(); err != nil {
+					g.log.SendLog("打开队伍界面失败")
+				}
+				g.checkLiXian()
+				_ = g.FindZhongKui()
 			} else {
-				g.log.SendLog("重新领取捉鬼任务")
-				if g.ContinueZhuoGui() {
-					if g.monitorZhongKuiDuiHua() {
-						time.Sleep(30 * time.Second)
+				if bl, point := g.HasImage("zhuo-na"); bl {
+					g.log.SendLog("已领取捉鬼任务，点击追踪")
+					_ = g.adb.TapPoint(point)
+				} else {
+					g.log.SendLog("重新领取捉鬼任务")
+					if g.ContinueZhuoGui() {
+						if g.monitorZhongKuiDuiHua() {
+							time.Sleep(30 * time.Second)
+							return false
+						}
 						return false
 					}
-					return false
+					// 检查是否有倒计时取消按钮
+					g.CheckAndClickTimingCancel()
+					if err := g.FindZhongKui(); err == nil {
+						g.monitorZhongKuiDuiHua()
+						return false
+					}
 				}
-				// 检查是否有倒计时取消按钮
-				g.CheckAndClickTimingCancel()
-				if err := g.FindZhongKui(); err == nil {
-					g.monitorZhongKuiDuiHua()
-					return false
-				}
+				time.Sleep(5 * time.Second)
 			}
-			time.Sleep(5 * time.Second)
 		}
 	}
 	index := 0
@@ -963,6 +969,8 @@ func (g *Game) monitorZhuogui() bool {
 			}
 			if index > 3 {
 				g.log.SendLog("没有找到捉鬼任务，重新开始")
+				_ = g.OpenTeamDialog()
+				g.checkLiXian()
 				break
 			}
 			time.Sleep(10 * time.Second)
