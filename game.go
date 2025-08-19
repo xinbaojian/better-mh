@@ -62,18 +62,6 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 			g.log.SendLog("师门任务已完成")
 		}
 	}
-	if zhuoGui && GlobalFlag {
-		if g.NeedTeamGuiUp() {
-			if err := g.TeamGuiUp(); err != nil {
-				g.log.SendLog("组队捉鬼任务失败...")
-			}
-		}
-		for {
-			if g.monitorZhuogui() {
-				break
-			}
-		}
-	}
 	if yunBiao && GlobalFlag {
 		if !YunBiaoTask {
 			g.log.SendLog("开始运镖...寻找郑镖头...")
@@ -86,6 +74,19 @@ func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 			YunBiaoTask = true
 		}
 	}
+	if zhuoGui && GlobalFlag {
+		if g.NeedTeamGuiUp() {
+			if err := g.TeamGuiUp(); err != nil {
+				g.log.SendLog("组队捉鬼任务失败...")
+			}
+		}
+		for {
+			if g.monitorZhuogui() {
+				break
+			}
+		}
+	}
+
 }
 
 func (g *Game) StopGame() {
@@ -792,6 +793,9 @@ func (g *Game) TeamGuiUp() error {
 	}
 	//循环检查是否组满队员
 	for {
+		if g.CheckStop() {
+			break
+		}
 		g.log.SendLog("检查是否组满队员")
 		if g.CheckStop() {
 			break
@@ -897,6 +901,7 @@ func (g *Game) monitorZhuogui() bool {
 					g.log.SendLog("打开队伍界面失败")
 				}
 				g.checkLiXian()
+				_ = g.CloseTeamDialog()
 				_ = g.FindZhongKui()
 			} else {
 				if bl, point := g.HasImage("zhuo-na"); bl {
@@ -935,6 +940,7 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(RightArrow)
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
+				_ = g.CloseTeamDialog()
 			}
 			time.Sleep(10 * time.Second)
 			continue
@@ -969,8 +975,7 @@ func (g *Game) monitorZhuogui() bool {
 			}
 			if index > 3 {
 				g.log.SendLog("没有找到捉鬼任务，重新开始")
-				_ = g.OpenTeamDialog()
-				g.checkLiXian()
+				g.confirmCheckLiXian()
 				break
 			}
 			time.Sleep(10 * time.Second)
@@ -1022,6 +1027,10 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 				_ = g.adb.TapPoint(point)
 				_ = g.adb.TapPoint(point)
 				break
+			} else {
+				g.log.SendLog("没有找到捉鬼任务，重新开始")
+				_ = g.OpenTeamDialog()
+				g.checkLiXian()
 			}
 		}
 		time.Sleep(2 * time.Second)
@@ -1066,6 +1075,23 @@ func (g *Game) CloseTeamDialog() error {
 	return g.adb.TapPoint(CloseTeamPoint)
 }
 
+func (g *Game) confirmCheckLiXian() {
+	for {
+		_ = g.OpenTeamDialog()
+		if err := g.OpenTeamDialog(); err != nil {
+			g.log.SendLog("打开队伍界面失败")
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		g.checkLiXian()
+		if !g.HasHelper() {
+			g.log.SendLog("没有找到助战，组满队员")
+			_ = g.CloseTeamDialog()
+			break
+		}
+	}
+}
+
 func (g *Game) checkLiXian() {
 	index := 0
 	for index < 5 {
@@ -1081,6 +1107,10 @@ func (g *Game) checkLiXian() {
 				g.log.SendLog("请离离线角色失败")
 			}
 		} else {
+			if !g.HasHelper() {
+				g.log.SendLog("没有找到助战，组满队员")
+				break
+			}
 			g.log.SendLog("没有找到离线角色，重新匹配队友")
 			if bl, _ := g.HasImage("cancel-match"); !bl {
 				if err := g.adb.TapPoint(image.Point{X: 1030, Y: 110}); err != nil {
@@ -1090,8 +1120,6 @@ func (g *Game) checkLiXian() {
 			break
 		}
 	}
-	_ = g.CloseTeamDialog()
-	g.CloseLeftArrow()
 }
 
 func (g *Game) CloseLeftArrow() {
