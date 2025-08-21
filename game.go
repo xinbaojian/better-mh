@@ -232,6 +232,7 @@ func (g *Game) ActiveTaskButton() {
 }
 
 func (g *Game) ActiveTeamButton() {
+	_ = g.CloseDialog()
 	g.log.SendLog("尝试激活队伍按钮")
 	fullGray, err := g.adb.CaptureMat()
 	if err != nil {
@@ -310,6 +311,7 @@ func (g *Game) IsBettle() (bool, error) {
 
 // OpenTeamDialog 激活队伍按钮
 func (g *Game) OpenTeamDialog() error {
+	_ = g.CloseDialog()
 	g.ActiveTeamButton()
 	err := g.adb.TapPoint(image.Point{X: 1120, Y: 140})
 	return err
@@ -896,7 +898,7 @@ func (g *Game) monitorZhuogui() bool {
 			// 判断是否成功领取捉鬼任务
 			if bl, _ := g.HasImage("receive-zhuogui-task-fail"); bl {
 				g.log.SendLog("领取捉鬼任务失败")
-				_ = g.adb.TapPoint(image.Point{X: 640, Y: 655})
+				_ = g.adb.TapPoint(image.Point{X: 640, Y: 455})
 				if err := g.OpenTeamDialog(); err != nil {
 					g.log.SendLog("打开队伍界面失败")
 				}
@@ -1030,7 +1032,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			} else {
 				g.log.SendLog("没有找到捉鬼任务，重新开始")
 				_ = g.OpenTeamDialog()
-				g.checkLiXian()
+				g.confirmCheckLiXian()
 			}
 		}
 		time.Sleep(2 * time.Second)
