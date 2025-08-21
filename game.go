@@ -943,6 +943,7 @@ func (g *Game) monitorZhuogui() bool {
 				_ = g.adb.TapPoint(LeftTeamIcon)
 				g.checkLiXian()
 				_ = g.CloseTeamDialog()
+				g.CloseLeftArrow()
 			}
 			time.Sleep(10 * time.Second)
 			continue
