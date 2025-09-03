@@ -5,8 +5,6 @@ import (
 	"better-mh/message"
 	"context"
 	"fmt"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
-	"gocv.io/x/gocv"
 	"image"
 	"os"
 	"os/exec"
@@ -14,6 +12,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"gocv.io/x/gocv"
 )
 
 // Adb struct
@@ -24,6 +25,9 @@ type Adb struct {
 	Connected bool
 	mu        sync.Mutex
 }
+
+var connectIp string
+var connectPort string
 
 func (adb *Adb) Startup(ctx context.Context, msg *message.Message, log *logs.Log) {
 	adb.ctx = ctx
@@ -55,6 +59,8 @@ func (adb *Adb) Connect(ip string, port string) bool {
 	result := strings.Contains(string(output), "connected to")
 	adb.Connected = result
 	adb.log.SendLog("已连接到设备 " + address)
+	connectIp = ip
+	connectPort = port
 	return result
 }
 
@@ -114,7 +120,7 @@ func (adb *Adb) Screenshot(filePath string) bool {
 		adb.msg.ShowMessageDialog("错误", "请先连接设备")
 		return false
 	}
-	cmd := createHiddenCommand("adb", "exec-out", "screencap", "-p")
+	cmd := createHiddenCommand("adb", "-s", fmt.Sprintf("%s:%s", connectIp, connectPort), "exec-out", "screencap", "-p")
 	imgBytes, err := cmd.Output()
 	if err != nil {
 		return false
@@ -150,14 +156,14 @@ func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 	adb.mu.Lock()
 	defer adb.mu.Unlock()
 	// 在设备上执行截图命令
-	cmd := createHiddenCommand("adb", "shell", "screencap", "-p", "/sdcard/screen.png")
+	cmd := createHiddenCommand("adb", "-s", fmt.Sprintf("%s:%s", connectIp, connectPort), "shell", "screencap", "-p", "/sdcard/screen.png")
 	if err := cmd.Run(); err != nil {
 		adb.log.SendLog("截图失败" + err.Error())
 		return gocv.Mat{}, fmt.Errorf("截图失败: %v", err)
 	}
 
 	// 从设备拉取截图文件
-	cmd = createHiddenCommand("adb", "pull", "/sdcard/screen.png", "screen.png")
+	cmd = createHiddenCommand("adb", "-s", fmt.Sprintf("%s:%s", connectIp, connectPort), "pull", "/sdcard/screen.png", "screen.png")
 	if err := cmd.Run(); err != nil {
 		adb.log.SendLog("拉取截图失败" + err.Error())
 		return gocv.Mat{}, fmt.Errorf("拉取截图失败: %v", err)
@@ -175,7 +181,7 @@ func (adb *Adb) CaptureMat() (gocv.Mat, error) {
 // TapPoint 使用adb模拟点击
 func (adb *Adb) TapPoint(point image.Point) error {
 	// 执行点击命令
-	cmd := createHiddenCommand("adb", "shell", "input", "tap", fmt.Sprintf("%d", point.X), fmt.Sprintf("%d", point.Y))
+	cmd := createHiddenCommand("adb", "-s", fmt.Sprintf("%s:%s", connectIp, connectPort), "shell", "input", "tap", fmt.Sprintf("%d", point.X), fmt.Sprintf("%d", point.Y))
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -192,7 +198,7 @@ func (adb *Adb) TapPoint(point image.Point) error {
 //	endX string 结束X坐标
 //	endY string 结束Y坐标
 func (adb *Adb) Swipe(beginX, beginY, endX, endY string) {
-	cmd := createHiddenCommand("adb", "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
+	cmd := createHiddenCommand("adb", "-s", fmt.Sprintf("%s:%s", connectIp, connectPort), "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
 	logStr := fmt.Sprintf("adb shell input swipe %s %s %s %s 1000", beginX, beginY, endX, endY)
 	if err := cmd.Run(); err != nil {
 		adb.log.SendLog("滑动失败 " + logStr)
@@ -217,7 +223,7 @@ func (adb *Adb) SwipeTask(up bool) {
 	if up {
 		str = "上拉"
 	}
-	cmd := createHiddenCommand("adb", "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
+	cmd := createHiddenCommand("adb", "-s", fmt.Sprintf("%s:%s", connectIp, connectPort), "shell", "input", "swipe", beginX, beginY, endX, endY, "1000")
 	logStr := fmt.Sprintf("adb shell input swipe %s %s %s %s 1000", beginX, beginY, endX, endY)
 	if err := cmd.Run(); err != nil {
 		adb.log.SendLog(str + "任务栏失败 " + logStr)
