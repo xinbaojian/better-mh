@@ -54,6 +54,8 @@ export function MatchTemplateFullGray(arg1:gocv.Mat,arg2:string,arg3:number):Pro
 
 export function NeedTeamGuiUp():Promise<boolean>;
 
+export function NewTeamGuiUp():Promise<void>;
+
 export function OpenHuoDongDialog(arg1:string):Promise<void>;
 
 export function OpenPackage():Promise<void>;

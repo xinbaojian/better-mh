@@ -98,6 +98,10 @@ export function NeedTeamGuiUp() {
   return window['go']['main']['Game']['NeedTeamGuiUp']();
 }
 
+export function NewTeamGuiUp() {
+  return window['go']['main']['Game']['NewTeamGuiUp']();
+}
+
 export function OpenHuoDongDialog(arg1) {
   return window['go']['main']['Game']['OpenHuoDongDialog'](arg1);
 }

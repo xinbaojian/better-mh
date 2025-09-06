@@ -102,7 +102,11 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	g.ActiveTaskButton()
+	if g.NeedTeamGuiUp() {
+		if err := g.NewTeamGuiUp(); err != nil {
+			g.log.SendLog("组队捉鬼任务失败...")
+		}
+	}
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -210,23 +214,18 @@ func (g *Game) ActiveTaskButton() {
 		return
 	}
 	// 判断任务栏是否折叠
-	hasPackage, _ := g.MatchTemplateFullGray(fullGray, "package", 0.8)
 	leftArrow, point := g.MatchTemplateFullGray(fullGray, "left-arrow", 0.8)
-	if hasPackage {
-		if leftArrow {
-			g.log.SendLog("任务栏已隐藏,打开任务栏")
-			_ = g.adb.TapPoint(point)
-		} else {
-			bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
-			if !bl {
-				if bl, _ := g.IsBettle(); !bl {
-					_ = g.adb.TapPoint(RightTaskTask)
-					g.log.SendLog("任务栏已激活")
-				}
+	if leftArrow {
+		g.log.SendLog("任务栏已隐藏,打开任务栏")
+		_ = g.adb.TapPoint(point)
+	} else {
+		bl, _ := g.MatchTemplateFullGray(fullGray, "fight", 0.9)
+		if !bl {
+			if bl, _ := g.IsBettle(); !bl {
+				_ = g.adb.TapPoint(RightTaskTask)
+				g.log.SendLog("任务栏已激活")
 			}
 		}
-	} else {
-		g.log.SendLog("未找到包裹图标")
 	}
 	_ = fullGray.Close()
 }
@@ -255,7 +254,7 @@ func (g *Game) ActiveTeamButton() {
 
 // HasImage 验证图片是否存在
 func (g *Game) HasImage(imgName string) (bool, image.Point) {
-	bl, point := g.MatchTemplate("images/"+imgName+".png", 0.8)
+	bl, point := g.MatchTemplate("images/"+imgName+".png", 0.7)
 	if bl {
 		return true, point
 	}
@@ -820,6 +819,16 @@ func (g *Game) TeamGuiUp() error {
 	return nil
 }
 
+func (g *Game) NewTeamGuiUp() error {
+	g.log.SendLog("开始组队")
+	_ = g.CloseDialog()
+	g.log.SendLog("去找钟馗..")
+	if err := g.FindZhongKui(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *Game) FindZhongKui() error {
 	if g.CheckStop() {
 		return errors.New("任务已取消")
@@ -950,7 +959,7 @@ func (g *Game) monitorZhuogui() bool {
 		} else {
 			_ = g.CloseDialog()
 			g.log.SendLog("捉鬼战斗结束...")
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Second)
 			if bl, _ := g.IsBettle(); bl {
 				continue
 			}
@@ -970,6 +979,7 @@ func (g *Game) monitorZhuogui() bool {
 				}
 				return false
 			}
+			g.ActiveTaskButton()
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				_ = g.adb.TapPoint(point)
 				g.log.SendLog("已有捉鬼任务，点击追踪")
@@ -978,10 +988,9 @@ func (g *Game) monitorZhuogui() bool {
 			}
 			if index > 3 {
 				g.log.SendLog("没有找到捉鬼任务，重新开始")
-				g.confirmCheckLiXian()
+				_ = g.TeamGuiUp()
 				break
 			}
-			time.Sleep(10 * time.Second)
 		}
 	}
 	return false
@@ -1016,7 +1025,6 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			g.log.SendLog("手动停止捉鬼任务")
 			return true
 		}
-		g.ActiveTaskButton()
 		time.Sleep(2 * time.Second)
 		g.log.SendLog("去找钟馗领取任务")
 		if bl, point := g.HasImage("zhuogui-task"); bl {
@@ -1025,6 +1033,7 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 				g.log.SendLog("点击捉鬼任务按钮失败")
 			}
 		} else {
+			g.log.SendLog("没有找到与钟馗对话")
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				g.log.SendLog("点击捉鬼追踪")
 				_ = g.adb.TapPoint(point)
