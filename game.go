@@ -102,11 +102,8 @@ func (g *Game) CheckStop() bool {
 }
 
 func (g *Game) TestButton() {
-	if g.NeedTeamGuiUp() {
-		if err := g.NewTeamGuiUp(); err != nil {
-			g.log.SendLog("组队捉鬼任务失败...")
-		}
-	}
+	//_ = g.NewTeamGuiUp()
+	g.OneClickSpeak()
 }
 
 // loadMatFromEmbed 从 embed 加载 Mat
@@ -826,6 +823,9 @@ func (g *Game) NewTeamGuiUp() error {
 	if err := g.FindZhongKui(); err != nil {
 		return err
 	}
+	if g.monitorZhongKuiDuiHua() {
+		g.log.SendLog("领取任务完成")
+	}
 	return nil
 }
 
@@ -944,6 +944,15 @@ func (g *Game) monitorZhuogui() bool {
 			g.log.SendLog("手动停止捉鬼任务")
 			return true
 		}
+		if bl, _ := g.HasImage("team-number-less"); bl {
+			g.log.SendLog("队伍人数不足5人。。。")
+			if bl, point := g.HasImage("yun-biao-ya-jin-confirm"); bl {
+				g.log.SendLog(fmt.Sprintf("点击确定 %v", point))
+				_ = g.adb.TapPoint(point)
+			} else {
+				g.log.SendLog("没有找到队伍人数不足5人确定")
+			}
+		}
 		if bl, _ := g.IsBettle(); bl {
 			g.log.SendLog("捉鬼战斗中...")
 			if g.HasLiXian() {
@@ -982,7 +991,7 @@ func (g *Game) monitorZhuogui() bool {
 			g.ActiveTaskButton()
 			if bl, point := g.HasImage("zhuo-na"); bl {
 				_ = g.adb.TapPoint(point)
-				g.log.SendLog("已有捉鬼任务，点击追踪")
+				g.log.SendLog(fmt.Sprintf("已有捉鬼任务，点击追踪 %v", point))
 			} else {
 				index += 1
 			}
@@ -1026,23 +1035,22 @@ func (g *Game) monitorZhongKuiDuiHua() bool {
 			return true
 		}
 		time.Sleep(2 * time.Second)
-		g.log.SendLog("去找钟馗领取任务")
-		if bl, point := g.HasImage("zhuogui-task"); bl {
+		g.log.SendLog(fmt.Sprintf("第%d次监控钟馗对话框", index))
+		// 判断是否正在与钟馗对话中
+		if bl, point := g.HasImage("zhong-kui"); bl {
 			g.log.SendLog(fmt.Sprintf("正在与钟馗对话中...(%v,%v)", point.X, point.Y))
-			if err := g.adb.TapPoint(point); err != nil {
-				g.log.SendLog("点击捉鬼任务按钮失败")
-			}
-		} else {
-			g.log.SendLog("没有找到与钟馗对话")
-			if bl, point := g.HasImage("zhuo-na"); bl {
-				g.log.SendLog("点击捉鬼追踪")
-				_ = g.adb.TapPoint(point)
-				_ = g.adb.TapPoint(point)
-				break
-			} else {
-				g.log.SendLog("没有找到捉鬼任务，重新开始")
-				_ = g.OpenTeamDialog()
-				g.confirmCheckLiXian()
+			g.log.SendLog("领取捉鬼任务")
+			if bl, point = g.HasImage("zhuogui-task"); bl {
+				if err := g.adb.TapPoint(point); err != nil {
+					g.log.SendLog("领取捉鬼任务按钮失败")
+				} else {
+					if bl, point := g.HasImage("zhuo-na"); bl {
+						_ = g.adb.TapPoint(point)
+						_ = g.adb.TapPoint(point)
+						g.log.SendLog(fmt.Sprintf("已有捉鬼任务，点击追踪 %v", point))
+						break
+					}
+				}
 			}
 		}
 		time.Sleep(2 * time.Second)
@@ -1107,6 +1115,9 @@ func (g *Game) confirmCheckLiXian() {
 func (g *Game) checkLiXian() {
 	index := 0
 	for index < 5 {
+		if g.CheckStop() {
+			break
+		}
 		if bl, point := g.HasImage("li-xian"); bl {
 			point.Y = point.Y - 50
 			_ = g.adb.TapPoint(point)
@@ -1124,8 +1135,8 @@ func (g *Game) checkLiXian() {
 				break
 			}
 			g.log.SendLog("没有找到离线角色，重新匹配队友")
-			if bl, _ := g.HasImage("cancel-match"); !bl {
-				if err := g.adb.TapPoint(image.Point{X: 1030, Y: 110}); err != nil {
+			if bl, point := g.HasImage("auto-match"); bl {
+				if err := g.adb.TapPoint(point); err != nil {
 					g.log.SendLog("重新匹配队友失败")
 				}
 			}
@@ -1248,4 +1259,48 @@ func (g *Game) CheckAndClickTimingCancel() {
 	if bl, point := g.HasImage("timing-cancel"); bl {
 		_ = g.adb.TapPoint(point)
 	}
+}
+
+func (g *Game) EditTeamTarget() error {
+	// 调整队伍目标
+	bl, point := g.HasImage("edit-team")
+	if bl {
+		_ = g.adb.TapPoint(point)
+		g.log.SendLog("点击队伍目标")
+		time.Sleep(1 * time.Second)
+	} else {
+		return errors.New("没有找到队伍目标按钮")
+	}
+	bl, point = g.HasImage("team-target-90115")
+	if bl {
+		_ = g.adb.TapPoint(point)
+		g.log.SendLog("点击队伍等级目标")
+		time.Sleep(1 * time.Second)
+	} else {
+		return errors.New("没有找到队伍等级目标按钮")
+	}
+	if err := g.adb.TapPoint(image.Point{X: 640, Y: 655}); err != nil {
+		return errors.New("点击调整目标确定失败")
+	}
+	return nil
+}
+
+// 1245,825
+
+func (g *Game) OneClickSpeak() {
+	bl, point := g.HasImage("one_click_speak")
+	if bl {
+		g.log.SendLog(fmt.Sprintf("点击一次说话 point %v", point))
+		_ = g.adb.TapPoint(point)
+		if bl, point = g.HasImage("current_channel"); bl {
+			//_ = g.adb.TapPoint(point)
+			g.log.SendLog(fmt.Sprintf("点击当前频道 point %v", point))
+		}
+
+	}
+	//g.log.SendLog("点击一次说话")
+	//_ = g.adb.TapPoint(image.Point{X: 900, Y: 700})
+	//time.Sleep(1 * time.Second)
+	//g.log.SendLog("点击当前频道")
+	//_ = g.adb.TapPoint(image.Point{X: 900, Y: 455})
 }

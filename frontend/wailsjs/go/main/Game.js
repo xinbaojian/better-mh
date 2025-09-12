@@ -38,6 +38,10 @@ export function ContinueZhuoGui() {
   return window['go']['main']['Game']['ContinueZhuoGui']();
 }
 
+export function EditTeamTarget() {
+  return window['go']['main']['Game']['EditTeamTarget']();
+}
+
 export function FindXiaoEr() {
   return window['go']['main']['Game']['FindXiaoEr']();
 }
@@ -100,6 +104,10 @@ export function NeedTeamGuiUp() {
 
 export function NewTeamGuiUp() {
   return window['go']['main']['Game']['NewTeamGuiUp']();
+}
+
+export function OneClickSpeak() {
+  return window['go']['main']['Game']['OneClickSpeak']();
 }
 
 export function OpenHuoDongDialog(arg1) {

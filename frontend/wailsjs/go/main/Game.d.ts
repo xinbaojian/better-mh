@@ -24,6 +24,8 @@ export function CloseTeamDialog():Promise<void>;
 
 export function ContinueZhuoGui():Promise<boolean>;
 
+export function EditTeamTarget():Promise<void>;
+
 export function FindXiaoEr():Promise<void>;
 
 export function FindZhengBiaoTou():Promise<void>;
@@ -55,6 +57,8 @@ export function MatchTemplateFullGray(arg1:gocv.Mat,arg2:string,arg3:number):Pro
 export function NeedTeamGuiUp():Promise<boolean>;
 
 export function NewTeamGuiUp():Promise<void>;
+
+export function OneClickSpeak():Promise<void>;
 
 export function OpenHuoDongDialog(arg1:string):Promise<void>;
 
