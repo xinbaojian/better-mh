@@ -1088,6 +1088,14 @@ func (g *Game) HasLiXian() bool {
 		g.log.SendLog("助战孙悟空上场了")
 		return true
 	}
+	if bl, _ := g.MatchTemplateFullGray(fullGray, "na-zha", 0.8); bl {
+		g.log.SendLog("助战哪吒上场了")
+		return true
+	}
+	if bl, _ := g.MatchTemplateFullGray(fullGray, "hui-an", 0.8); bl {
+		g.log.SendLog("助战惠岸行者上场了")
+		return true
+	}
 	return false
 }
 
