@@ -301,6 +301,10 @@ func (g *Game) IsBettle() (bool, error) {
 	if bl {
 		return true, nil
 	}
+	bl, _ = g.MatchTemplateFullGray(fullGray, "feng-yang", 0.8)
+	if bl {
+		return true, nil
+	}
 	//TODO 其它阵法
 	return false, err
 }
