@@ -251,7 +251,7 @@ func (g *Game) ActiveTeamButton() {
 
 // HasImage 验证图片是否存在
 func (g *Game) HasImage(imgName string) (bool, image.Point) {
-	bl, point := g.MatchTemplate("images/"+imgName+".png", 0.7)
+	bl, point := g.MatchTemplate("images/"+imgName+".png", 0.8)
 	if bl {
 		return true, point
 	}
@@ -1148,6 +1148,7 @@ func (g *Game) checkLiXian() {
 			}
 			g.log.SendLog("没有找到离线角色，重新匹配队友")
 			if bl, point := g.HasImage("auto-match"); bl {
+				g.log.SendLog("点击自动匹配")
 				if err := g.adb.TapPoint(point); err != nil {
 					g.log.SendLog("重新匹配队友失败")
 				}
