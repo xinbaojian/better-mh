@@ -225,6 +225,9 @@ func (g *Game) ActiveTaskButton() {
 		}
 	}
 	_ = fullGray.Close()
+	if bl, _ := g.HasImage("task-dialog"); bl {
+		_ = g.CloseDialog()
+	}
 }
 
 func (g *Game) ActiveTeamButton() {
@@ -1158,6 +1161,39 @@ func (g *Game) checkLiXian() {
 	}
 }
 
+func (g *Game) checkZanLi() {
+	index := 0
+	for index < 5 {
+		if g.CheckStop() {
+			break
+		}
+		if bl, point := g.HasImage("zan-li"); bl {
+			point.Y = point.Y - 50
+			_ = g.adb.TapPoint(point)
+			g.log.SendLog("请离离线角色")
+			if bl, point := g.HasImage("kick-out-team"); bl {
+				_ = g.adb.TapPoint(point)
+				g.log.SendLog("请离离线角色成功")
+				index += 1
+			} else {
+				g.log.SendLog("请离离线角色失败")
+			}
+		} else {
+			if !g.HasHelper() {
+				g.log.SendLog("没有找到助战，组满队员")
+				break
+			}
+			g.log.SendLog("没有找到离线角色，重新匹配队友")
+			if bl, point := g.HasImage("auto-match"); bl {
+				g.log.SendLog("点击自动匹配")
+				if err := g.adb.TapPoint(point); err != nil {
+					g.log.SendLog("重新匹配队友失败")
+				}
+			}
+			break
+		}
+	}
+}
 func (g *Game) CloseLeftArrow() {
 	if bl, _ := g.HasImage("left-panel"); bl {
 		_ = g.adb.TapPoint(LeftArrow)
