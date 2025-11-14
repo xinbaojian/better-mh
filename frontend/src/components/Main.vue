@@ -2,7 +2,7 @@
 
 import {nextTick, onMounted, reactive, ref} from "vue";
 import {CaptureMat, CheckConnected, Connect, Disconnect} from "../../wailsjs/go/adb/Adb";
-import {StartGame, StopGame, TestButton} from "../../wailsjs/go/main/Game";
+import {Reset, StartGame, StopGame, TestButton} from "../../wailsjs/go/main/Game";
 import {ElMessage} from "element-plus";
 import {EventsOn} from "../../wailsjs/runtime";
 
@@ -62,6 +62,12 @@ function clearLog() {
   logs.value = []
 }
 
+function resetTask(){
+  Reset().then(()=>{
+    ElMessage.success("重置成功")
+  })
+}
+
 onMounted(() => {
   if (form.ip) {
     CheckConnected(form.ip, form.port).then((res: boolean) => {
@@ -111,7 +117,7 @@ onMounted(() => {
       </el-row>
       <el-row>
 
-        <el-col :span="12">
+        <el-col :span="8">
           <el-form-item>
             <el-button v-if="!state.connected" type="primary" @click="connect">Adb链接</el-button>
             <el-button v-else type="danger" @click="disconnect">断开ADB</el-button>
@@ -119,11 +125,12 @@ onMounted(() => {
             <el-button v-else type="danger" @click="stopGameClick">停止</el-button>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="16">
           <el-form-item>
             <el-button type="primary" @click="TestButton">测试</el-button>
             <el-button type="primary" @click="CaptureMat">截图</el-button>
             <el-button type="danger" @click="clearLog">清空日志</el-button>
+            <el-button type="danger" @click="resetTask">重置</el-button>
           </el-form-item>
         </el-col>
       </el-row>

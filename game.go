@@ -33,6 +33,13 @@ func (g *Game) Startup(ctx context.Context, adb *adb.Adb, log *logs.Log) {
 	g.log = log
 }
 
+func (g *Game) Reset() {
+	BaoTuTask = false
+	WaBaoTuTask = false
+	ShimenTask = false
+	YunBiaoTask = false
+}
+
 // StartGame 启动游戏
 func (g *Game) StartGame(baoTu, waBaoTu, shimen, zhuoGui, yunBiao bool) {
 	GlobalFlag = true

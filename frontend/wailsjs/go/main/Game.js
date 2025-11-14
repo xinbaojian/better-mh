@@ -122,6 +122,10 @@ export function OpenTeamDialog() {
   return window['go']['main']['Game']['OpenTeamDialog']();
 }
 
+export function Reset() {
+  return window['go']['main']['Game']['Reset']();
+}
+
 export function StartBaoTuTask() {
   return window['go']['main']['Game']['StartBaoTuTask']();
 }
